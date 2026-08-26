@@ -163,16 +163,17 @@ See [docs/security.md](docs/security.md) for details.
 
 ## Current Phase
 
-**Phase 11 — CI/CD & Security** (Complete)
+**Phase 12 — Observability & SRE** (Complete)
 
-- GitHub Actions: CI (lint + test + type check + build)
-- GitHub Actions: Security (Gitleaks + Trivy filesystem + Trivy Docker image)
-- GitHub Actions: Build (multi-arch Docker image to GHCR — amd64 + arm64)
-- Minimal permissions (contents: read, packages: write for build only)
-- No hardcoded credentials — uses GITHUB_TOKEN only
-- Docker: pinned Python 3.11.9-slim, non-root, healthcheck
-- No automatic production deployment
-- YAML syntax validated
+- Application metrics: http_requests_total, http_request_duration_seconds, billing_data_freshness_seconds
+- Metrics middleware for automatic request tracking
+- SLI/SLO system: API availability (99.5%), data freshness (<24h), recommendation success (99%)
+- Alert engine: BillingDataStale, BigQueryFailure, APIHighErrorRate, RecommendationFailure, ForecastFailure
+- APIs: GET /api/observability/metrics, /slo, /alerts
+- 5 incident documents (INC-001 through INC-005) with MTTD/MTTR targets
+- 5 operational runbooks with diagnosis and resolution steps
+- 263 backend tests passing
+- Structured JSON logging (structlog)
 
 See [docs/project-roadmap.md](docs/project-roadmap.md) for the full roadmap.
 
