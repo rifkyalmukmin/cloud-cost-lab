@@ -163,15 +163,17 @@ See [docs/security.md](docs/security.md) for details.
 
 ## Current Phase
 
-**Phase 1 — Mock Cost Engine** (Complete)
+**Phase 2 — Cost Dashboard** (Complete)
 
-- FastAPI backend with cost analytics API
-- Deterministic mock data (90 days, 8 resources, 4 services)
-- Cost aggregation by service, project, environment
-- Daily cost trends with date range filtering
-- MoM comparison, projected cost, potential savings
-- 27 automated tests (unit + integration)
-- Docker Compose setup
+- Next.js frontend with TypeScript, Tailwind CSS, shadcn/ui
+- Overview dashboard (`/`) and Cost Explorer (`/cost`)
+- Summary cards: current month, previous month, MoM change, projected cost, potential savings
+- Daily cost trend chart (area chart, 30-day)
+- Breakdown charts: by service, by project, by environment
+- Loading/error/empty/success states for all components
+- Responsive layout (mobile to desktop)
+- All data fetched from backend API (no hardcoded values)
+- Data freshness indicator
 
 See [docs/project-roadmap.md](docs/project-roadmap.md) for the full roadmap.
 
