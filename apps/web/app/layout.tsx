@@ -40,6 +40,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <Link href="/resources" className="hover:text-foreground transition-colors">
                 Resources
               </Link>
+              <Link href="/utilization" className="hover:text-foreground transition-colors">
+                Utilization
+              </Link>
             </nav>
           </div>
         </header>

@@ -163,16 +163,16 @@ See [docs/security.md](docs/security.md) for details.
 
 ## Current Phase
 
-**Phase 3 — Resource Inventory** (Complete)
+**Phase 4 — Utilization Analysis** (Complete)
 
-- Resource list API with filtering (project, service, region, environment, status, owner, team)
-- Resource detail API with cost history, utilization history, labels, ownership
-- Pagination (page, page_size, max 100)
-- Resource inventory page (`/resources`) with table view
-- Resource detail page (`/resources/[id]`) with charts and metadata
-- Utilization tracking: CPU, memory, disk, network
-- UNALLOCATED handling for resources without clear ownership
-- 51 backend tests passing
+- Utilization analytics API (GET /api/utilization)
+- Statistics computation: avg, min, max, p95 for CPU, memory, disk
+- Pattern detection: low, high, unstable, normal, missing (evidence-based, no auto-recommendations)
+- Cost vs utilization correlation
+- Utilization summary page (`/utilization`) with scatter plot and detailed table
+- Pattern badges with evidence for each resource
+- Storage resources correctly show null CPU/memory
+- 78 backend tests passing (includes edge cases: null, zero, single-value)
 
 See [docs/project-roadmap.md](docs/project-roadmap.md) for the full roadmap.
 

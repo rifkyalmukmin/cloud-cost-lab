@@ -174,3 +174,65 @@ export async function getResources(params?: {
 export async function getResource(resourceId: string): Promise<ResourceDetail> {
   return fetchApi<ResourceDetail>(`/api/resources/${encodeURIComponent(resourceId)}`);
 }
+
+// Utilization
+
+export interface UtilizationStats {
+  avg: number | null;
+  min: number | null;
+  max: number | null;
+  p95: number | null;
+}
+
+export interface UtilizationPattern {
+  status: "low" | "high" | "unstable" | "normal" | "missing";
+  evidence: string;
+}
+
+export interface ResourceUtilization {
+  resource_id: string;
+  name: string;
+  service: string;
+  environment: string;
+  monthly_cost: number;
+  cpu: UtilizationStats;
+  memory: UtilizationStats;
+  disk: UtilizationStats;
+  cpu_pattern: UtilizationPattern;
+  memory_pattern: UtilizationPattern;
+}
+
+export interface UtilizationSummaryResponse {
+  period_start: string;
+  period_end: string;
+  total_resources: number;
+  low_utilization_count: number;
+  high_utilization_count: number;
+  unstable_count: number;
+  missing_metrics_count: number;
+  resources: ResourceUtilization[];
+}
+
+export interface CostVsUtilData {
+  resource_id: string;
+  name: string;
+  service: string;
+  environment: string;
+  cost: number;
+  cpu_avg: number | null;
+  memory_avg: number | null;
+}
+
+export interface CostVsUtilResponse {
+  period_start: string;
+  period_end: string;
+  data: CostVsUtilData[];
+}
+
+export async function getUtilizationSummary(): Promise<UtilizationSummaryResponse> {
+  return fetchApi<UtilizationSummaryResponse>("/api/utilization");
+}
+
+export async function getCostVsUtilization(): Promise<CostVsUtilResponse> {
+  return fetchApi<CostVsUtilResponse>("/api/utilization/cost-vs-utilization/data");
+}
