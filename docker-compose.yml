@@ -1,0 +1,38 @@
+services:
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DEMO_MODE=true
+      - APP_ENV=development
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - LOG_LEVEL=INFO
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  db:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=cloudcost
+      - POSTGRES_PASSWORD=cloudcost
+      - POSTGRES_DB=cloudcost
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cloudcost"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  pgdata:

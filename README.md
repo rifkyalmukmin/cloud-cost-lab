@@ -163,7 +163,15 @@ See [docs/security.md](docs/security.md) for details.
 
 ## Current Phase
 
-**Phase 0 — Project Foundation & Architecture** (Complete)
+**Phase 1 — Mock Cost Engine** (Complete)
+
+- FastAPI backend with cost analytics API
+- Deterministic mock data (90 days, 8 resources, 4 services)
+- Cost aggregation by service, project, environment
+- Daily cost trends with date range filtering
+- MoM comparison, projected cost, potential savings
+- 27 automated tests (unit + integration)
+- Docker Compose setup
 
 See [docs/project-roadmap.md](docs/project-roadmap.md) for the full roadmap.
 
