@@ -163,17 +163,16 @@ See [docs/security.md](docs/security.md) for details.
 
 ## Current Phase
 
-**Phase 2 — Cost Dashboard** (Complete)
+**Phase 3 — Resource Inventory** (Complete)
 
-- Next.js frontend with TypeScript, Tailwind CSS, shadcn/ui
-- Overview dashboard (`/`) and Cost Explorer (`/cost`)
-- Summary cards: current month, previous month, MoM change, projected cost, potential savings
-- Daily cost trend chart (area chart, 30-day)
-- Breakdown charts: by service, by project, by environment
-- Loading/error/empty/success states for all components
-- Responsive layout (mobile to desktop)
-- All data fetched from backend API (no hardcoded values)
-- Data freshness indicator
+- Resource list API with filtering (project, service, region, environment, status, owner, team)
+- Resource detail API with cost history, utilization history, labels, ownership
+- Pagination (page, page_size, max 100)
+- Resource inventory page (`/resources`) with table view
+- Resource detail page (`/resources/[id]`) with charts and metadata
+- Utilization tracking: CPU, memory, disk, network
+- UNALLOCATED handling for resources without clear ownership
+- 51 backend tests passing
 
 See [docs/project-roadmap.md](docs/project-roadmap.md) for the full roadmap.
 

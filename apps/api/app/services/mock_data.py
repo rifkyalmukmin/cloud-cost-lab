@@ -195,6 +195,90 @@ def _inject_spike(resource_id: str, day: date) -> float:
     return 1.0
 
 
+RESOURCE_UTILIZATION: dict[str, dict] = {
+    "vm-prod-api-01": {"cpu_avg": 62.0, "memory_avg": 71.0, "disk_avg": 45.0},
+    "vm-prod-api-02": {"cpu_avg": 58.0, "memory_avg": 68.0, "disk_avg": 42.0},
+    "vm-dev-01": {"cpu_avg": 25.0, "memory_avg": 35.0, "disk_avg": 30.0},
+    "vm-idle-01": {"cpu_avg": 3.0, "memory_avg": 12.0, "disk_avg": 8.0},
+    "sql-prod-01": {"cpu_avg": 45.0, "memory_avg": 60.0, "disk_avg": 55.0},
+    "sql-staging-01": {"cpu_avg": 15.0, "memory_avg": 28.0, "disk_avg": 20.0},
+    "gcs-prod-assets": {"cpu_avg": None, "memory_avg": None, "disk_avg": 62.0},
+    "ar-prod-images": {"cpu_avg": None, "memory_avg": None, "disk_avg": 38.0},
+}
+
+RESOURCE_LABELS: dict[str, dict] = {
+    "vm-prod-api-01": {"env": "production", "service": "api", "managed-by": "terraform"},
+    "vm-prod-api-02": {"env": "production", "service": "api", "managed-by": "terraform"},
+    "vm-dev-01": {"env": "development", "purpose": "workstation"},
+    "vm-idle-01": {},
+    "sql-prod-01": {"env": "production", "service": "api", "ha": "true"},
+    "sql-staging-01": {"env": "staging", "service": "api"},
+    "gcs-prod-assets": {"env": "production", "type": "assets"},
+    "ar-prod-images": {"env": "production", "type": "docker"},
+}
+
+POTENTIAL_SAVINGS: dict[str, float] = {
+    "vm-prod-api-01": 0.0,
+    "vm-prod-api-02": 0.0,
+    "vm-dev-01": 12.0,
+    "vm-idle-01": 24.0,
+    "sql-prod-01": 0.0,
+    "sql-staging-01": 18.0,
+    "gcs-prod-assets": 2.0,
+    "ar-prod-images": 4.0,
+}
+
+
+def generate_utilization_records(
+    resource_id: str,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+) -> list[dict]:
+    """Generate deterministic utilization records for a resource."""
+    if end_date is None:
+        end_date = date(2026, 8, 26)
+    if start_date is None:
+        start_date = end_date - timedelta(days=29)
+
+    base_util = RESOURCE_UTILIZATION.get(resource_id)
+    if not base_util:
+        return []
+
+    records = []
+    current_day = start_date
+    while current_day <= end_date:
+        key = f"util:{resource_id}:{current_day.isoformat()}:{SEED}"
+        hash_val = int(hashlib.sha256(key.encode()).hexdigest()[:8], 16)
+        rng = random.Random(hash_val)
+
+        cpu = None
+        memory = None
+        if base_util["cpu_avg"] is not None:
+            cpu = round(base_util["cpu_avg"] * rng.uniform(0.7, 1.3), 1)
+            cpu = min(cpu, 100.0)
+        if base_util["memory_avg"] is not None:
+            memory = round(base_util["memory_avg"] * rng.uniform(0.8, 1.2), 1)
+            memory = min(memory, 100.0)
+
+        disk = None
+        if base_util["disk_avg"] is not None:
+            disk = round(base_util["disk_avg"] * rng.uniform(0.9, 1.1), 1)
+            disk = min(disk, 100.0)
+
+        records.append({
+            "resource_id": resource_id,
+            "date": current_day.isoformat(),
+            "cpu_utilization": cpu,
+            "memory_utilization": memory,
+            "disk_utilization": disk,
+            "network_in_mb": round(rng.uniform(10, 500), 1) if cpu else round(rng.uniform(1, 50), 1),
+            "network_out_mb": round(rng.uniform(5, 300), 1) if cpu else round(rng.uniform(0.5, 20), 1),
+        })
+        current_day += timedelta(days=1)
+
+    return records
+
+
 def generate_cost_records(
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,

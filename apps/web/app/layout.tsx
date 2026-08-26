@@ -37,6 +37,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <Link href="/cost" className="hover:text-foreground transition-colors">
                 Cost Explorer
               </Link>
+              <Link href="/resources" className="hover:text-foreground transition-colors">
+                Resources
+              </Link>
             </nav>
           </div>
         </header>

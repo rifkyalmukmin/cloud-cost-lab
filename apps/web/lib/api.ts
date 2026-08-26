@@ -80,3 +80,97 @@ export async function getCostByProject(): Promise<CostBreakdownResponse> {
 export async function getCostByEnvironment(): Promise<CostBreakdownResponse> {
   return fetchApi<CostBreakdownResponse>("/api/cost/by-environment");
 }
+
+// Resources
+
+export interface ResourceListItem {
+  resource_id: string;
+  name: string;
+  type: string;
+  project: string;
+  service: string;
+  region: string;
+  zone: string | null;
+  environment: string;
+  status: string;
+  owner: string;
+  team: string;
+  application: string;
+  monthly_cost: number;
+  cpu_utilization: number | null;
+  memory_utilization: number | null;
+  potential_saving: number;
+}
+
+export interface ResourceListResponse {
+  data: ResourceListItem[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface UtilizationRecord {
+  date: string;
+  cpu_utilization: number | null;
+  memory_utilization: number | null;
+  disk_utilization: number | null;
+  network_in_mb: number;
+  network_out_mb: number;
+}
+
+export interface CostHistoryRecord {
+  date: string;
+  cost: number;
+}
+
+export interface ResourceDetail {
+  resource_id: string;
+  name: string;
+  type: string;
+  project: string;
+  service: string;
+  service_id: string;
+  region: string;
+  zone: string | null;
+  environment: string;
+  status: string;
+  owner: string;
+  team: string;
+  application: string;
+  labels: Record<string, string>;
+  created_at: string;
+  last_seen: string;
+  monthly_cost: number;
+  potential_saving: number;
+  utilization: {
+    cpu_avg: number | null;
+    memory_avg: number | null;
+    disk_avg: number | null;
+  };
+  utilization_history: UtilizationRecord[];
+  cost_history: CostHistoryRecord[];
+}
+
+export async function getResources(params?: {
+  page?: number;
+  page_size?: number;
+  environment?: string;
+  project?: string;
+  service?: string;
+  owner?: string;
+}): Promise<ResourceListResponse> {
+  const searchParams = new URLSearchParams();
+  if (params?.page) searchParams.set("page", String(params.page));
+  if (params?.page_size) searchParams.set("page_size", String(params.page_size));
+  if (params?.environment) searchParams.set("environment", params.environment);
+  if (params?.project) searchParams.set("project", params.project);
+  if (params?.service) searchParams.set("service", params.service);
+  if (params?.owner) searchParams.set("owner", params.owner);
+  const qs = searchParams.toString();
+  return fetchApi<ResourceListResponse>(`/api/resources${qs ? `?${qs}` : ""}`);
+}
+
+export async function getResource(resourceId: string): Promise<ResourceDetail> {
+  return fetchApi<ResourceDetail>(`/api/resources/${encodeURIComponent(resourceId)}`);
+}
