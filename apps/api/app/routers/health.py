@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.config import settings
+from app.services.cost_service import cost_service
 
 router = APIRouter()
 
@@ -17,9 +18,15 @@ def health():
 
 @router.get("/ready")
 def ready():
-    data_loaded = settings.demo_mode
+    provider_available = cost_service.provider.is_available()
     return {
-        "status": "ready" if data_loaded else "not_ready",
-        "database": "mock" if settings.demo_mode else "postgresql",
-        "data_loaded": data_loaded,
+        "status": "ready" if provider_available else "not_ready",
+        "provider": "mock" if settings.demo_mode else "gcp",
+        "data_loaded": provider_available,
     }
+
+
+@router.get("/data-freshness")
+def data_freshness():
+    """Get data freshness status (FRESH/STALE/UNKNOWN)."""
+    return cost_service.get_data_freshness()

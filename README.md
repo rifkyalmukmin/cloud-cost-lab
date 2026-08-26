@@ -163,17 +163,17 @@ See [docs/security.md](docs/security.md) for details.
 
 ## Current Phase
 
-**Phase 7 — Forecasting & Anomaly Detection** (Complete - Backend)
+**Phase 8 — GCP Billing Integration** (Complete)
 
-- Cost forecasting with hybrid method (70% linear trend + 30% moving average)
-- 30-day forecasts with confidence ranges (expected, lower_bound, upper_bound)
-- Never presented as exact values — always includes uncertainty
-- Anomaly detection using z-score analysis (rolling average baseline)
-- Anomaly attribution (top service, project, resource)
-- Severity levels: MEDIUM (z-score 2.0-3.0), HIGH (z-score > 3.0)
-- APIs: GET /api/forecast, GET /api/anomalies
-- 184 backend tests passing (includes edge cases: insufficient data, zero baseline)
-- Forecasts include range descriptions ($249 - $497)
+- BillingDataProvider abstraction (interface for mock and real GCP data)
+- MockBillingProvider (default, no GCP needed)
+- GCPBillingProvider (BigQuery Billing Export, opt-in)
+- Partition-aware, cost-safe BigQuery queries (no SELECT *, bounded dates, column-specific)
+- Data freshness tracking (FRESH/STALE/UNKNOWN) with /data-freshness endpoint
+- Provider factory with DEMO_MODE toggle
+- 209 backend tests passing (includes provider error handling, auth failures)
+- GCP setup guide, BigQuery cost documentation
+- No GCP resources created — code only
 
 See [docs/project-roadmap.md](docs/project-roadmap.md) for the full roadmap.
 

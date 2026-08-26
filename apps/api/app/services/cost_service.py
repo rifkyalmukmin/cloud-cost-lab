@@ -1,24 +1,39 @@
 """Cost analytics service.
 
-Aggregates mock cost data by various dimensions (service, project, environment)
+Aggregates cost data by various dimensions (service, project, environment)
 and computes summaries, trends, and period comparisons.
+
+Uses the BillingDataProvider abstraction to support both mock and real GCP data.
 """
 
 from datetime import date, timedelta
 from typing import Optional
 
-from app.services.mock_data import generate_cost_records
+from app.providers.base import BillingDataProvider
+from app.providers.factory import create_billing_provider
 
 
 class CostService:
-    def __init__(self):
+    def __init__(self, provider: Optional[BillingDataProvider] = None):
+        self._provider = provider
         self._records: Optional[list[dict]] = None
+
+    @property
+    def provider(self) -> BillingDataProvider:
+        if self._provider is None:
+            self._provider = create_billing_provider()
+        return self._provider
 
     @property
     def records(self) -> list[dict]:
         if self._records is None:
-            self._records = generate_cost_records()
+            self._records = self.provider.get_cost_records()
         return self._records
+
+    def get_data_freshness(self) -> dict:
+        """Get data freshness status from the provider."""
+        freshness = self.provider.get_data_freshness()
+        return freshness.to_dict()
 
     def get_summary(self, reference_date: Optional[date] = None) -> dict:
         ref = reference_date or date(2026, 8, 26)
@@ -51,6 +66,8 @@ class CostService:
 
         potential_savings = round(current_month_cost * 0.18, 2)
 
+        freshness = self.provider.get_data_freshness()
+
         return {
             "current_month_cost": round(current_month_cost, 2),
             "previous_month_cost": round(prev_month_cost, 2),
@@ -59,7 +76,8 @@ class CostService:
             "projected_month_cost": round(projected, 2),
             "potential_savings": round(potential_savings, 2),
             "currency": "USD",
-            "data_freshness": f"{ref.isoformat()}T04:00:00Z",
+            "data_freshness": freshness.last_updated.isoformat() if freshness.last_updated else f"{ref.isoformat()}T04:00:00",
+            "freshness_status": freshness.status,
         }
 
     def get_trend(
