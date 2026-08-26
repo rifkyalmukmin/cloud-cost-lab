@@ -1,0 +1,7 @@
+# Copy to terraform.tfvars and fill in your values
+# NEVER commit terraform.tfvars (contains project-specific values)
+
+project_id         = "your-gcp-project-id"
+region             = "asia-southeast1"
+prefix             = "cloud-cost-lab"
+billing_dataset_id = "billing_export"

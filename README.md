@@ -163,17 +163,17 @@ See [docs/security.md](docs/security.md) for details.
 
 ## Current Phase
 
-**Phase 9 — GCP Monitoring Integration** (Complete)
+**Phase 10 — Terraform** (Complete)
 
-- MonitoringDataProvider abstraction (interface for mock and GCP monitoring)
-- MockMonitoringProvider with extended metrics (connections, requests, latency)
-- GCPMonitoringProvider (Cloud Monitoring API, opt-in)
-- Evidence strength assessment (STRONG/MODERATE/WEAK/INSUFFICIENT)
-- Enriched resource metrics: cost + utilization + performance
-- APIs: GET /api/monitoring, GET /api/monitoring/{resource_id}
-- Monitoring data freshness tracking
-- 242 backend tests passing (includes provider failure, stale/zero/missing metrics)
-- No GCP resources created — code only
+- Modular Terraform structure: iam, bigquery, storage, compute
+- Least-privilege IAM: cost-reader (BQ viewer + job user), monitoring-reader (monitoring viewer)
+- BigQuery dataset with table expiration and reader access
+- Cloud Storage bucket with lifecycle policies and public access prevention
+- Compute module: e2-micro, preemptible, Container-Optimized OS, no external IP
+- Two environments: dev (full), demo (IAM only)
+- Cost estimate: $0.05/month (dev minimal) to $4/month (with compute)
+- No terraform apply executed — plan/validate only
+- Destroy procedures documented for every resource
 
 See [docs/project-roadmap.md](docs/project-roadmap.md) for the full roadmap.
 
