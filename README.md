@@ -163,16 +163,17 @@ See [docs/security.md](docs/security.md) for details.
 
 ## Current Phase
 
-**Phase 4 — Utilization Analysis** (Complete)
+**Phase 5 — Recommendation Engine** (Complete)
 
-- Utilization analytics API (GET /api/utilization)
-- Statistics computation: avg, min, max, p95 for CPU, memory, disk
-- Pattern detection: low, high, unstable, normal, missing (evidence-based, no auto-recommendations)
-- Cost vs utilization correlation
-- Utilization summary page (`/utilization`) with scatter plot and detailed table
-- Pattern badges with evidence for each resource
-- Storage resources correctly show null CPU/memory
-- 78 backend tests passing (includes edge cases: null, zero, single-value)
+- Pluggable rule-based recommendation engine (5 rules)
+- IdleComputeRule, OversizedComputeRule, UnusedDiskRule, StorageRetentionRule, CostAnomalyRule
+- Evidence-based savings calculations (no guesses)
+- Recommendations API (GET /api/recommendations)
+- Risk assessment (LOW/MEDIUM/HIGH), confidence, effort, priority scoring
+- All recommendations require human approval (approval_required=true)
+- Recommendations page (`/recommendations`) with sorting, filtering, detailed cards
+- 121 backend tests passing (includes boundary conditions: 0, 5, 10, 20, null)
+- No automatic infrastructure changes
 
 See [docs/project-roadmap.md](docs/project-roadmap.md) for the full roadmap.
 

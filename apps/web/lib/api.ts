@@ -236,3 +236,40 @@ export async function getUtilizationSummary(): Promise<UtilizationSummaryRespons
 export async function getCostVsUtilization(): Promise<CostVsUtilResponse> {
   return fetchApi<CostVsUtilResponse>("/api/utilization/cost-vs-utilization/data");
 }
+
+// Recommendations
+
+export interface Recommendation {
+  id: string;
+  title: string;
+  resource_id: string;
+  resource_name: string;
+  service: string;
+  environment: string;
+  problem: string;
+  evidence: string;
+  recommendation: string;
+  current_cost: number;
+  potential_cost: number;
+  potential_savings: number;
+  savings_percentage: number;
+  risk: "LOW" | "MEDIUM" | "HIGH";
+  confidence: "LOW" | "MEDIUM" | "HIGH";
+  effort: "LOW" | "MEDIUM" | "HIGH";
+  priority: number;
+  status: "OPEN" | "APPROVED" | "REJECTED" | "IMPLEMENTED" | "VERIFIED";
+  approval_required: boolean;
+}
+
+export interface RecommendationsResponse {
+  recommendations: Recommendation[];
+  total: number;
+}
+
+export async function getRecommendations(): Promise<RecommendationsResponse> {
+  return fetchApi<RecommendationsResponse>("/api/recommendations");
+}
+
+export async function getRecommendation(id: string): Promise<Recommendation> {
+  return fetchApi<Recommendation>(`/api/recommendations/${encodeURIComponent(id)}`);
+}
