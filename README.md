@@ -163,17 +163,18 @@ See [docs/security.md](docs/security.md) for details.
 
 ## Current Phase
 
-**Phase 13 — Savings Verification** (Complete)
+**Phase 14 — AI Cloud Cost Advisor** (Complete)
 
-- Recommendation lifecycle: OPEN → APPROVED → IMPLEMENTED → VERIFIED (+ REJECTED)
-- Potential vs realized savings distinction (only VERIFIED counts as realized)
-- Before/after cost calculation (realized_savings = cost_before - cost_after)
-- Audit log for all lifecycle transitions
-- APIs: GET /api/savings, POST approve/reject/implement/verify
-- Lifecycle enforcement (invalid transitions return 400)
-- Demo seed data showing recommendations in all stages
-- 288 backend tests passing
-- Simulated savings are NEVER called "realized"
+- AI Cost Advisor: natural language questions about cloud costs
+- READ-ONLY safety model (cannot take destructive actions)
+- 7 question types: cost increase, savings, idle resources, anomalies, forecast, priority, budget
+- Structured responses: summary, evidence, likely_cause, recommendation, savings, risk, confidence
+- Input sanitization and prompt injection protection
+- Sensitive data filtering (no keys, credentials, tokens in AI context)
+- Insufficient evidence handling ("Insufficient evidence" when data is lacking)
+- APIs: POST /api/ai/ask, GET /api/ai/capabilities
+- Safety note in every response
+- 312 backend tests passing
 
 See [docs/project-roadmap.md](docs/project-roadmap.md) for the full roadmap.
 
