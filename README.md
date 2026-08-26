@@ -163,16 +163,17 @@ See [docs/security.md](docs/security.md) for details.
 
 ## Current Phase
 
-**Phase 6 — Budget & Governance** (Complete - Backend)
+**Phase 7 — Forecasting & Anomaly Detection** (Complete - Backend)
 
-- Budget monitoring system with threshold-based alerts (HEALTHY/WARNING/CRITICAL/EXCEEDED)
-- Budget tracking: current spend, projected spend, utilization percentage, remaining budget
-- 5 governance policies: REQUIRE_OWNER_LABEL, REQUIRE_ENVIRONMENT_LABEL, MAX_MONTHLY_COST, NO_PUBLIC_DATABASE, DEV_RESOURCE_SCHEDULE
-- Policy evaluation engine (PASS/WARNING/VIOLATION)
-- APIs: GET /api/budget, GET /api/policies
-- Threshold boundary testing (69%, 70%, 89%, 90%, 99%, 100%, 101%)
-- 162 backend tests passing (all boundary conditions covered)
-- No automatic destructive actions (warnings and recommendations only)
+- Cost forecasting with hybrid method (70% linear trend + 30% moving average)
+- 30-day forecasts with confidence ranges (expected, lower_bound, upper_bound)
+- Never presented as exact values — always includes uncertainty
+- Anomaly detection using z-score analysis (rolling average baseline)
+- Anomaly attribution (top service, project, resource)
+- Severity levels: MEDIUM (z-score 2.0-3.0), HIGH (z-score > 3.0)
+- APIs: GET /api/forecast, GET /api/anomalies
+- 184 backend tests passing (includes edge cases: insufficient data, zero baseline)
+- Forecasts include range descriptions ($249 - $497)
 
 See [docs/project-roadmap.md](docs/project-roadmap.md) for the full roadmap.
 

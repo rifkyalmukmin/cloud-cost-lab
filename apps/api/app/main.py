@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import settings
-from app.routers import budget, cost, health, policies, recommendations, resources, utilization
+from app.routers import anomalies, budget, cost, forecast, health, policies, recommendations, resources, utilization
 
 structlog.configure(
     processors=[
@@ -53,6 +53,8 @@ app.include_router(utilization.router)
 app.include_router(recommendations.router)
 app.include_router(budget.router)
 app.include_router(policies.router)
+app.include_router(forecast.router)
+app.include_router(anomalies.router)
 
 
 @app.exception_handler(Exception)
