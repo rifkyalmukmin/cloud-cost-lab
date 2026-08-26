@@ -163,17 +163,16 @@ See [docs/security.md](docs/security.md) for details.
 
 ## Current Phase
 
-**Phase 5 — Recommendation Engine** (Complete)
+**Phase 6 — Budget & Governance** (Complete - Backend)
 
-- Pluggable rule-based recommendation engine (5 rules)
-- IdleComputeRule, OversizedComputeRule, UnusedDiskRule, StorageRetentionRule, CostAnomalyRule
-- Evidence-based savings calculations (no guesses)
-- Recommendations API (GET /api/recommendations)
-- Risk assessment (LOW/MEDIUM/HIGH), confidence, effort, priority scoring
-- All recommendations require human approval (approval_required=true)
-- Recommendations page (`/recommendations`) with sorting, filtering, detailed cards
-- 121 backend tests passing (includes boundary conditions: 0, 5, 10, 20, null)
-- No automatic infrastructure changes
+- Budget monitoring system with threshold-based alerts (HEALTHY/WARNING/CRITICAL/EXCEEDED)
+- Budget tracking: current spend, projected spend, utilization percentage, remaining budget
+- 5 governance policies: REQUIRE_OWNER_LABEL, REQUIRE_ENVIRONMENT_LABEL, MAX_MONTHLY_COST, NO_PUBLIC_DATABASE, DEV_RESOURCE_SCHEDULE
+- Policy evaluation engine (PASS/WARNING/VIOLATION)
+- APIs: GET /api/budget, GET /api/policies
+- Threshold boundary testing (69%, 70%, 89%, 90%, 99%, 100%, 101%)
+- 162 backend tests passing (all boundary conditions covered)
+- No automatic destructive actions (warnings and recommendations only)
 
 See [docs/project-roadmap.md](docs/project-roadmap.md) for the full roadmap.
 
