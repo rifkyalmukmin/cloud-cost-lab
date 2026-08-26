@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.observability.middleware import MetricsMiddleware
-from app.routers import anomalies, budget, cost, forecast, health, monitoring, observability, policies, recommendations, resources, utilization
+from app.routers import anomalies, budget, cost, forecast, health, monitoring, observability, policies, recommendations, resources, savings, utilization
 
 structlog.configure(
     processors=[
@@ -59,6 +59,7 @@ app.include_router(forecast.router)
 app.include_router(anomalies.router)
 app.include_router(monitoring.router)
 app.include_router(observability.router)
+app.include_router(savings.router)
 
 
 @app.exception_handler(Exception)

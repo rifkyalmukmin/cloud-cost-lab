@@ -163,17 +163,17 @@ See [docs/security.md](docs/security.md) for details.
 
 ## Current Phase
 
-**Phase 12 — Observability & SRE** (Complete)
+**Phase 13 — Savings Verification** (Complete)
 
-- Application metrics: http_requests_total, http_request_duration_seconds, billing_data_freshness_seconds
-- Metrics middleware for automatic request tracking
-- SLI/SLO system: API availability (99.5%), data freshness (<24h), recommendation success (99%)
-- Alert engine: BillingDataStale, BigQueryFailure, APIHighErrorRate, RecommendationFailure, ForecastFailure
-- APIs: GET /api/observability/metrics, /slo, /alerts
-- 5 incident documents (INC-001 through INC-005) with MTTD/MTTR targets
-- 5 operational runbooks with diagnosis and resolution steps
-- 263 backend tests passing
-- Structured JSON logging (structlog)
+- Recommendation lifecycle: OPEN → APPROVED → IMPLEMENTED → VERIFIED (+ REJECTED)
+- Potential vs realized savings distinction (only VERIFIED counts as realized)
+- Before/after cost calculation (realized_savings = cost_before - cost_after)
+- Audit log for all lifecycle transitions
+- APIs: GET /api/savings, POST approve/reject/implement/verify
+- Lifecycle enforcement (invalid transitions return 400)
+- Demo seed data showing recommendations in all stages
+- 288 backend tests passing
+- Simulated savings are NEVER called "realized"
 
 See [docs/project-roadmap.md](docs/project-roadmap.md) for the full roadmap.
 
