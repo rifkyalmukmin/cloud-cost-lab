@@ -163,17 +163,16 @@ See [docs/security.md](docs/security.md) for details.
 
 ## Current Phase
 
-**Phase 10 — Terraform** (Complete)
+**Phase 11 — CI/CD & Security** (Complete)
 
-- Modular Terraform structure: iam, bigquery, storage, compute
-- Least-privilege IAM: cost-reader (BQ viewer + job user), monitoring-reader (monitoring viewer)
-- BigQuery dataset with table expiration and reader access
-- Cloud Storage bucket with lifecycle policies and public access prevention
-- Compute module: e2-micro, preemptible, Container-Optimized OS, no external IP
-- Two environments: dev (full), demo (IAM only)
-- Cost estimate: $0.05/month (dev minimal) to $4/month (with compute)
-- No terraform apply executed — plan/validate only
-- Destroy procedures documented for every resource
+- GitHub Actions: CI (lint + test + type check + build)
+- GitHub Actions: Security (Gitleaks + Trivy filesystem + Trivy Docker image)
+- GitHub Actions: Build (multi-arch Docker image to GHCR — amd64 + arm64)
+- Minimal permissions (contents: read, packages: write for build only)
+- No hardcoded credentials — uses GITHUB_TOKEN only
+- Docker: pinned Python 3.11.9-slim, non-root, healthcheck
+- No automatic production deployment
+- YAML syntax validated
 
 See [docs/project-roadmap.md](docs/project-roadmap.md) for the full roadmap.
 
