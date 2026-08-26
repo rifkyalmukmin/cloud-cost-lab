@@ -200,9 +200,24 @@ Test coverage includes:
 | normal CPU 60% | Within normal range | No immediate action needed |
 | missing CPU | No metrics | Expected for storage, check if compute metrics missing |
 
+## Integration with Monitoring Provider (Phase 9)
+
+Utilization data now comes from the `MonitoringDataProvider` abstraction:
+- **MockMonitoringProvider**: deterministic synthetic data (default)
+- **GCPMonitoringProvider**: real-time data from GCP Cloud Monitoring
+
+The monitoring provider extends utilization analysis with additional metrics:
+- Connections (database connection count)
+- Request count (daily API/request volume)
+- Latency (response time in milliseconds)
+
+Evidence strength assessment combines duration + available metrics to grade reliability.
+
+See [docs/gcp-monitoring.md](gcp-monitoring.md) for provider details.
+
 ## Testing
 
-78 backend tests passing, covering:
+242 backend tests passing (total), covering:
 - Aggregation across 8 resources
 - Statistics computation (avg, min, max, p95)
 - Pattern analysis (low, high, unstable, normal, missing)
@@ -210,3 +225,5 @@ Test coverage includes:
 - Date range filtering
 - Missing resource (404)
 - Storage resources (null CPU/memory)
+- Provider failure graceful degradation
+- Evidence strength assessment

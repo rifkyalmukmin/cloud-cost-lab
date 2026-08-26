@@ -163,16 +163,16 @@ See [docs/security.md](docs/security.md) for details.
 
 ## Current Phase
 
-**Phase 8 — GCP Billing Integration** (Complete)
+**Phase 9 — GCP Monitoring Integration** (Complete)
 
-- BillingDataProvider abstraction (interface for mock and real GCP data)
-- MockBillingProvider (default, no GCP needed)
-- GCPBillingProvider (BigQuery Billing Export, opt-in)
-- Partition-aware, cost-safe BigQuery queries (no SELECT *, bounded dates, column-specific)
-- Data freshness tracking (FRESH/STALE/UNKNOWN) with /data-freshness endpoint
-- Provider factory with DEMO_MODE toggle
-- 209 backend tests passing (includes provider error handling, auth failures)
-- GCP setup guide, BigQuery cost documentation
+- MonitoringDataProvider abstraction (interface for mock and GCP monitoring)
+- MockMonitoringProvider with extended metrics (connections, requests, latency)
+- GCPMonitoringProvider (Cloud Monitoring API, opt-in)
+- Evidence strength assessment (STRONG/MODERATE/WEAK/INSUFFICIENT)
+- Enriched resource metrics: cost + utilization + performance
+- APIs: GET /api/monitoring, GET /api/monitoring/{resource_id}
+- Monitoring data freshness tracking
+- 242 backend tests passing (includes provider failure, stale/zero/missing metrics)
 - No GCP resources created — code only
 
 See [docs/project-roadmap.md](docs/project-roadmap.md) for the full roadmap.
