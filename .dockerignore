@@ -1,0 +1,11 @@
+# Docker build context filter (repo-root context for apps/api/Dockerfile).
+.git/
+.venv/
+venv/
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+apps/api/tests/
+.env

@@ -1,0 +1,55 @@
+[project]
+name = "costlab-api"
+version = "0.1.0"
+description = "Cloud Cost Lab API — mock cost analytics engine (Phase 1)"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+dependencies = [
+    "fastapi~=0.115.6",
+    "uvicorn[standard]~=0.34.0",
+    "sqlalchemy~=2.0.36",
+    "alembic~=1.14.0",
+    "psycopg2-binary~=2.9.10",
+    "pydantic~=2.10.3",
+    "pydantic-settings~=2.7.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest~=8.3.4",
+    "httpx~=0.27.2",
+    "ruff~=0.8.4",
+    "mypy~=1.14.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/costlab"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.12"
+mypy_path = "src"
+strict = true
+warn_unused_ignores = true
+plugins = []
+
+[[tool.mypy.overrides]]
+module = ["alembic.*", "psycopg2.*"]
+ignore_missing_imports = true

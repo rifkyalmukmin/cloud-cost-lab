@@ -1,0 +1,43 @@
+[
+ {
+  "project_id": "cc-lab-shop-prod",
+  "display_name": "Shop Platform \u2014 Production",
+  "environment": "production",
+  "labels": {
+   "environment": "production",
+   "team": "platform",
+   "application": "shop",
+   "owner": "rifky"
+  }
+ },
+ {
+  "project_id": "cc-lab-shop-staging",
+  "display_name": "Shop Platform \u2014 Staging",
+  "environment": "staging",
+  "labels": {
+   "environment": "staging",
+   "team": "platform",
+   "application": "shop",
+   "owner": "rifky"
+  }
+ },
+ {
+  "project_id": "cc-lab-shop-dev",
+  "display_name": "Shop Platform \u2014 Development",
+  "environment": "development",
+  "labels": {
+   "environment": "development",
+   "team": "platform",
+   "application": "shop",
+   "owner": "rifky"
+  }
+ },
+ {
+  "project_id": "cc-lab-legacy-sandbox",
+  "display_name": "Legacy Sandbox",
+  "environment": "development",
+  "labels": {
+   "environment": "development"
+  }
+ }
+]

@@ -1,0 +1,22 @@
+[
+ {
+  "service_id": "compute-engine",
+  "display_name": "Compute Engine",
+  "category": "compute"
+ },
+ {
+  "service_id": "cloud-sql",
+  "display_name": "Cloud SQL",
+  "category": "database"
+ },
+ {
+  "service_id": "cloud-storage",
+  "display_name": "Cloud Storage",
+  "category": "storage"
+ },
+ {
+  "service_id": "artifact-registry",
+  "display_name": "Artifact Registry",
+  "category": "storage"
+ }
+]

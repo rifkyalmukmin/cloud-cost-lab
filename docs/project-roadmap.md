@@ -10,7 +10,7 @@
 | # | Phase | Scope | Status |
 | --- | --- | --- | --- |
 | 0 | Planning & Foundation | Architecture, ADRs, repository structure, cost-safety & security strategy, roadmap | ✅ **Done (this commit)** |
-| 1 | Local Mock Platform | FastAPI + PostgreSQL + Docker Compose + mock dataset, provider abstraction, `/health` | ⬜ Pending |
+| 1 | Local Mock Platform | FastAPI + PostgreSQL + Docker Compose + mock dataset, provider abstraction, `/health` | ✅ **Done** |
 | 2 | Cost Explorer | Cost aggregation, WoW/MoM, breakdowns, filters, first dashboard pages | ⬜ Pending |
 | 3 | Resource Inventory | Resources, usage series, cost↔utilization linkage | ⬜ Pending |
 | 4 | Recommendation Engine | Idle detection, rightsizing, storage rules, lifecycle (OPEN→…→VERIFIED) | ⬜ Pending |
@@ -33,19 +33,22 @@ Milestone grouping:
 
 - **Foundation:** 0–1 · **Core product:** 2–8 · **Cloud & hardening:** 9–13 · **FinOps depth & portfolio:** 14–18
 
-## 2. Current phase: PHASE 0 (complete)
+## 2. Current phase: PHASE 1 — Mock Cost Engine (complete)
 
 Delivered in this phase:
 
-- Finalized architecture and technology decisions ([`docs/architecture.md`](architecture.md), ADR-001…ADR-005).
-- Repository skeleton (`apps/`, `analytics/`, `data/mock/`, `terraform/`, `monitoring/`, `scripts/`, `docs/`, `.github/workflows/`) with per-directory scope notes.
-- Cost-safety and security strategy ([`docs/cost-safety.md`](cost-safety.md)).
-- `.gitignore` (secrets/credentials/env excluded) and `.env.example` (`DEMO_MODE=true` default).
-- No business implementation — deliberately.
+- FastAPI app (`apps/api`) with `/health`, `/ready`, and the five `/api/cost*` endpoints — pagination (page cap 100), filtering (project/service/environment/region/resource/date), validation, structured errors with request ids, JSON logging with request ids.
+- PostgreSQL schema via Alembic (`0001_initial_schema`): `projects, services, resources, cost_records, resource_usage` with indexes; money as exact `Numeric`.
+- Provider abstraction live: `MockBillingProvider`/`MockUsageProvider` read the committed deterministic dataset; `Real*` providers fail loudly until Phase 9 (ADR-003/004).
+- Deterministic mock dataset (fixed seeds, committed JSON, byte-identical regeneration) with the Phase 1 scenarios baked in: rising monthly cost, Compute +35% spike week, September budget-risk run-rate, idle VM, oversized VM, underutilized Cloud SQL, unallocated-cost resource, dev weekend dip.
+- Ingestion loader with referential pre-validation; seeding is idempotent (`--force` to replace, demo mode only).
+- Docker: pinned `python:3.13.1-slim-bookworm` + `postgres:16.4-alpine`, non-root container, healthchecks; `docker compose up -d` migrates, seeds, serves.
+- 39 tests (provider, aggregation, API) — aggregation correctness checked against an independent plain-Python recomputation of the dataset; ruff + mypy (strict) clean.
+- Docs: [`docs/cost-model.md`](cost-model.md), [`docs/local-development.md`](local-development.md), README + per-directory READMEs updated.
 
-## 3. Next phase: PHASE 1 — Local Mock Platform (not started)
+## 3. Next phase: PHASE 2 — Cost Explorer (not started)
 
-Planned scope: docker-compose (api + web placeholder + postgres), FastAPI skeleton with `/health` + `/ready`, PostgreSQL schema/migrations, mock dataset in `data/mock/`, `MockBillingProvider`/`MockUsageProvider` behind the provider interfaces, pytest for provider loading. Entry criteria: this phase merged. **Do not start until explicitly instructed.**
+Planned scope: first dashboard pages in `apps/web` (Next.js + TypeScript strict + Tailwind + shadcn/ui), cost charts from `/api/cost/trend` + breakdown endpoints, date/service/environment filters, WoW/MoM change display, UNALLOCATED attribution labelling, project-specific optimization priority visible in cost tables. Entry criteria: this phase merged. **Do not start until explicitly instructed.**
 
 ## 4. Definition of Done (applies to every phase)
 

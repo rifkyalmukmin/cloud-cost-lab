@@ -1,0 +1,44 @@
+# Local development stack for Cloud Cost Lab (Phase 1): PostgreSQL + API.
+# Usage: cp .env.example .env && docker compose up -d
+# The API container runs migrations and seeds the mock dataset automatically.
+
+services:
+  postgres:
+    image: postgres:16.4-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cloud_cost_lab}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-local-only}
+      POSTGRES_DB: ${POSTGRES_DB:-cloud_cost_lab}
+    ports:
+      # Host side is configurable so the port can dodge other local projects;
+      # the container always listens on 5432 internally.
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # Inside the compose network the database is reachable by service name
+      # on its fixed internal port; only the host-side mapping is configurable.
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      DEMO_MODE: ${DEMO_MODE:-true}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
