@@ -167,3 +167,15 @@ def test_unknown_route_returns_structured_404(client: TestClient) -> None:
     error = response.json()["error"]
     assert error["code"] == "http_error"
     assert error["request_id"]
+
+
+def test_cors_allows_configured_dashboard_origin(client: TestClient) -> None:
+    """The Phase 2 dashboard (localhost:3000) calls the API cross-origin from the browser."""
+    response = client.get("/api/cost/by-environment", headers={"Origin": "http://localhost:3000"})
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://localhost:3000"
+
+
+def test_cors_rejects_unknown_origin(client: TestClient) -> None:
+    response = client.get("/api/cost/by-environment", headers={"Origin": "http://evil.example.com"})
+    assert "access-control-allow-origin" not in response.headers

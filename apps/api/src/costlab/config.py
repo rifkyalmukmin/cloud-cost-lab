@@ -35,6 +35,12 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8000
     api_version: str = "0.1.0"
+    # Comma-separated origins allowed to call the API from a browser (Phase 2 dashboard).
+    cors_origins: str = "http://localhost:3000"
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
     @property
     def sync_database_url(self) -> str:

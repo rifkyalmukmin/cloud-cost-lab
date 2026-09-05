@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from costlab import __version__
 from costlab.api.errors import install_error_handlers
@@ -24,6 +25,15 @@ def create_app() -> FastAPI:
             "GCP FinOps & Cloud Cost Optimization platform — Phase 1: mock cost "
             "analytics engine. All data is synthetic (DEMO_MODE=true)."
         ),
+    )
+    # The Phase 2 dashboard (apps/web) calls this API cross-origin from the browser.
+    # GET-only + configured origins: no cookies, no credentials, no wildcard-with-credentials.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origin_list,
+        allow_methods=["GET"],
+        allow_headers=["Accept"],
+        allow_credentials=False,
     )
     app.add_middleware(RequestContextMiddleware)
     install_error_handlers(app)

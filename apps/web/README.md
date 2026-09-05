@@ -1,30 +1,47 @@
 # apps/web — Frontend Dashboard
 
-Next.js + TypeScript frontend (Tailwind CSS + shadcn/ui) for Cloud Cost Lab.
+Next.js + TypeScript (strict) + Tailwind CSS + shadcn/ui + Recharts frontend for Cloud Cost Lab.
 
-**Status: not implemented yet (Phase 2).** This directory currently holds only the plan below — no application code.
+**Status: Phase 2 IMPLEMENTED — Cost Dashboard.** Overview (`/`) and Cost Explorer (`/cost`), entirely powered by the Phase 1 API — no hardcoded numbers, no GCP access.
 
-## Planned routes
+## Layout
 
 ```text
-/                Overview (current/previous month, MoM change, projected month end,
-                 potential vs realized savings, budget status, data freshness)
-/cost            Cost Explorer (filters, daily/weekly/monthly, breakdowns)
-/resources       Resource Inventory (utilization, monthly cost, potential saving, risk)
-/recommendations Evidence-based recommendations with approval state
-/savings         Potential vs realized savings
-/forecast        30-day forecast with range (never presented as exact values)
-/budget          Budget status, warnings, forecast-over-budget risk
-/utilization     Utilization analytics
-/policies        Cost guardrails (PASS / WARNING / VIOLATION)
-/reports         Generated reports
-/ai              AI Cloud Cost Advisor (READ-ONLY, Phase 16)
-/settings        Data source, demo mode, thresholds
+apps/web/
+├── app/
+│   ├── page.tsx            Overview: summary cards + daily trend + 3 breakdowns
+│   ├── cost/page.tsx       Cost Explorer: filters, granularity switch, tables, pagination
+│   └── layout.tsx          header/nav/footer, metadata, Geist fonts
+├── components/
+│   ├── cost/               CostSummaryCard, ChartCard, CostTrendChart,
+│   │                       ServiceCostChart, ProjectCostChart, EnvironmentCostChart,
+│   │                       EnvironmentBadge
+│   ├── data-state.tsx      shared loading / error / empty / success states
+│   └── site-header.tsx
+├── hooks/use-api.ts        fetch-state hook (abortable, retryable)
+├── lib/
+│   ├── api.ts              typed API client (mirrors the FastAPI schemas)
+│   ├── metrics.ts          MoM (MTD) + run-rate projection (pure, unit-tested)
+│   ├── format.ts           USD / percent / date formatters
+│   └── __tests__/          vitest tests for metrics (8)
+└── vitest.config.ts
 ```
+
+## Commands
+
+```bash
+npm run dev         # dev server (Turbopack)
+npm run build       # production build (includes type check + ESLint)
+npm run typecheck   # tsc --noEmit (strict)
+npm run lint        # ESLint
+npm test            # vitest (metrics unit tests)
+```
+
+Configuration: `NEXT_PUBLIC_API_URL` (inlined at build time — restart dev after changing). Set it in `.env.local` (git-ignored); see `/.env.example`. The backend must allow the dashboard origin via `CORS_ORIGINS` (default `http://localhost:3000`).
 
 ## Ground rules
 
-- Strict TypeScript.
-- Every cost figure labelled with what it is: `estimated`, `potential`, `observed`, or `SIMULATION — NOT REALIZED SAVINGS`.
-- Stale data is labelled `STALE`, never shown as current.
-- Missing cost attribution is shown as `UNALLOCATED` — never guessed.
+- Every cost figure is fetched from the API — no hardcoded values in the UI.
+- Every section implements loading / error / empty / success; errors surface the API message + request id with a retry button.
+- Derived numbers (MoM, projection) are labelled as estimates; Potential Savings stays an honest empty state until Phase 4.
+- Strict TypeScript; no `any`; ESLint clean.

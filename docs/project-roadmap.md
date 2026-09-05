@@ -11,7 +11,7 @@
 | --- | --- | --- | --- |
 | 0 | Planning & Foundation | Architecture, ADRs, repository structure, cost-safety & security strategy, roadmap | ✅ **Done (this commit)** |
 | 1 | Local Mock Platform | FastAPI + PostgreSQL + Docker Compose + mock dataset, provider abstraction, `/health` | ✅ **Done** |
-| 2 | Cost Explorer | Cost aggregation, WoW/MoM, breakdowns, filters, first dashboard pages | ⬜ Pending |
+| 2 | Cost Explorer | Cost aggregation, WoW/MoM, breakdowns, filters, first dashboard pages | ✅ **Done** |
 | 3 | Resource Inventory | Resources, usage series, cost↔utilization linkage | ⬜ Pending |
 | 4 | Recommendation Engine | Idle detection, rightsizing, storage rules, lifecycle (OPEN→…→VERIFIED) | ⬜ Pending |
 | 5 | Budget | Budget model, thresholds, projected month-end, budget-risk alerts | ⬜ Pending |
@@ -33,22 +33,22 @@ Milestone grouping:
 
 - **Foundation:** 0–1 · **Core product:** 2–8 · **Cloud & hardening:** 9–13 · **FinOps depth & portfolio:** 14–18
 
-## 2. Current phase: PHASE 1 — Mock Cost Engine (complete)
+## 2. Current phase: PHASE 2 — Cost Dashboard (complete)
 
 Delivered in this phase:
 
-- FastAPI app (`apps/api`) with `/health`, `/ready`, and the five `/api/cost*` endpoints — pagination (page cap 100), filtering (project/service/environment/region/resource/date), validation, structured errors with request ids, JSON logging with request ids.
-- PostgreSQL schema via Alembic (`0001_initial_schema`): `projects, services, resources, cost_records, resource_usage` with indexes; money as exact `Numeric`.
-- Provider abstraction live: `MockBillingProvider`/`MockUsageProvider` read the committed deterministic dataset; `Real*` providers fail loudly until Phase 9 (ADR-003/004).
-- Deterministic mock dataset (fixed seeds, committed JSON, byte-identical regeneration) with the Phase 1 scenarios baked in: rising monthly cost, Compute +35% spike week, September budget-risk run-rate, idle VM, oversized VM, underutilized Cloud SQL, unallocated-cost resource, dev weekend dip.
-- Ingestion loader with referential pre-validation; seeding is idempotent (`--force` to replace, demo mode only).
-- Docker: pinned `python:3.13.1-slim-bookworm` + `postgres:16.4-alpine`, non-root container, healthchecks; `docker compose up -d` migrates, seeds, serves.
-- 39 tests (provider, aggregation, API) — aggregation correctness checked against an independent plain-Python recomputation of the dataset; ruff + mypy (strict) clean.
-- Docs: [`docs/cost-model.md`](cost-model.md), [`docs/local-development.md`](local-development.md), README + per-directory READMEs updated.
+- Next.js 15 + TypeScript (strict) + Tailwind v4 + shadcn/ui + Recharts dashboard in `apps/web`.
+- `/` Overview: Current Month (MTD), Previous Month, MoM Change (**MTD vs prior MTD**, not partial-vs-full), Projected Month-End (**linear run-rate, labelled estimate**), Potential Savings (**honest empty state** until Phase 4), daily cost trend, and cost by service / project / environment — every number fetched from the Phase 1 API.
+- `/cost` Cost Explorer: date/service/project/environment filters (option lists fetched from the API), daily/weekly/monthly trend switch, three breakdown tables, and server-side paginated cost records (10/25/50 per page).
+- Uniform section states everywhere: loading (skeleton), error (API message + request id + retry), empty (hint), success; refetches dim instead of flashing.
+- Typed API client (`lib/api.ts`) mirroring the FastAPI schemas; `useApi` hook (abortable + retryable); derived metrics as pure unit-tested functions (vitest, 8 tests).
+- Backend: CORS for the dashboard origin (`CORS_ORIGINS`, GET-only, no credentials) + 2 new pytest tests (41 total).
+- Verified in-browser: live data matches the API to the cent; filter → Cloud SQL = 194 records; pagination Page 2 of 8; reset works; zero console errors; mobile stacks cleanly.
+- Docs: [`docs/dashboard.md`](dashboard.md) (pages, states, trade-offs), README + `apps/web/README.md` updated.
 
-## 3. Next phase: PHASE 2 — Cost Explorer (not started)
+## 3. Next phase: PHASE 3 — Resource Inventory (not started)
 
-Planned scope: first dashboard pages in `apps/web` (Next.js + TypeScript strict + Tailwind + shadcn/ui), cost charts from `/api/cost/trend` + breakdown endpoints, date/service/environment filters, WoW/MoM change display, UNALLOCATED attribution labelling, project-specific optimization priority visible in cost tables. Entry criteria: this phase merged. **Do not start until explicitly instructed.**
+Planned scope: `/api/resources` + `/api/resources/{id}` endpoints, resource inventory page with utilization↔cost linkage, resource detail view. Entry criteria: this phase merged. **Do not start until explicitly instructed.**
 
 ## 4. Definition of Done (applies to every phase)
 

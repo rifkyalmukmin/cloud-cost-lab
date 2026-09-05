@@ -4,7 +4,7 @@
 
 Cloud Cost Lab aggregates cloud cost and resource utilization data, detects waste and optimization opportunities, estimates **potential** savings, monitors budgets, forecasts future cost with explicit uncertainty, and produces evidence-based recommendations that require **human approval** before any impactful action.
 
-**Current status: PHASE 1 — Mock Cost Engine complete.** FastAPI + PostgreSQL serving cost analytics from a deterministic mock dataset (`DEMO_MODE=true`). See [`docs/project-roadmap.md`](docs/project-roadmap.md).
+**Current status: PHASE 2 — Cost Dashboard complete.** Next.js dashboard (overview + cost explorer) on top of the Phase 1 mock cost engine (`DEMO_MODE=true`). See [`docs/project-roadmap.md`](docs/project-roadmap.md).
 
 ---
 
@@ -74,12 +74,17 @@ DEMO_MODE=true   →   synthetic billing + utilization data (data/mock/)
 
 Mock and real data sources implement the same `BillingDataProvider` interface, so the dashboard and recommendation engine behave identically in both modes. See `docs/decisions/ADR-003-demo-mode.md`.
 
-### Run it locally (Phase 1)
+### Run it locally (Phase 1 + 2)
 
 ```bash
 cp .env.example .env
 docker compose up -d          # postgres + api (migrate + seed happen automatically)
 curl localhost:8000/health    # interactive docs: http://localhost:8000/docs
+
+cd apps/web                   # dashboard (Phase 2)
+npm install
+echo 'NEXT_PUBLIC_API_URL=http://localhost:8000' > .env.local
+npm run dev                   # http://localhost:3000
 ```
 
 Phase 1 API (all mock data, paginated, filterable):
@@ -94,7 +99,18 @@ GET /api/cost/by-project         breakdown with share of total
 GET /api/cost/by-environment     development / staging / production
 ```
 
-Full setup, host-run mode, and testing: [`docs/local-development.md`](docs/local-development.md). What the numbers mean: [`docs/cost-model.md`](docs/cost-model.md).
+Phase 2 dashboard:
+
+```text
+/                                Overview: current/previous month, MoM (MTD), projected
+                                 run-rate (labelled estimate), daily trend,
+                                 cost by service / project / environment
+/cost                            Cost Explorer: filters (date, service, project,
+                                 environment), granularity switch, breakdown tables,
+                                 paginated cost records
+```
+
+Every dashboard section handles loading / error / empty / success states; Potential Savings is an explicit empty state until the recommendation engine exists (Phase 4). Details: [`docs/dashboard.md`](docs/dashboard.md) · Backend setup & testing: [`docs/local-development.md`](docs/local-development.md) · What the numbers mean: [`docs/cost-model.md`](docs/cost-model.md).
 
 ## 7. Cost safety
 
@@ -119,7 +135,7 @@ Full policy: [`docs/cost-safety.md`](docs/cost-safety.md).
 cloud-cost-lab/
 ├── apps/
 │   ├── api/            FastAPI backend — Phase 1 IMPLEMENTED (src/, alembic/, tests/)
-│   └── web/            Next.js dashboard (Phase 2)
+│   └── web/            Next.js dashboard — Phase 2 IMPLEMENTED (overview + cost explorer)
 ├── analytics/          cost / utilization / recommendations / forecasting modules
 ├── data/
 │   └── mock/           committed deterministic dataset + generator scenario source
@@ -129,7 +145,8 @@ cloud-cost-lab/
 ├── docs/
 │   ├── architecture.md
 │   ├── cost-model.md           Phase 1: data + cost semantics
-│   ├── local-development.md    Phase 1: setup, commands, testing
+│   ├── dashboard.md            Phase 2: pages, components, states, trade-offs
+│   ├── local-development.md    setup, commands, testing
 │   ├── project-roadmap.md
 │   ├── cost-safety.md
 │   └── decisions/      ADR-001 … ADR-005
@@ -147,10 +164,11 @@ cloud-cost-lab/
 
 ## 11. Limitations (honest)
 
-- Phase 1 delivers the cost engine and API only — there is no UI yet (Phase 2) and no recommendations yet (Phase 4).
+- Phase 2 delivers the cost engine and read-only dashboard — no recommendations yet (Phase 4), so Potential Savings is an explicit empty state.
 - All data is synthetic (mock provider). Real GCP integration is Phase 9+.
+- MoM Change compares month-to-date vs prior MTD; Projected Month-End is a linear run-rate estimate — both labelled as such in the UI.
 - Single-cloud (GCP) by design for now; multi-cloud is a future extension via the provider abstraction.
-- Forecasting starts with simple methods (moving average, linear regression) and always shows a range, not exact numbers.
+- Forecasting proper (with ranges) arrives in Phase 6; the dashboard's projection is a simple heuristic.
 - Recommendations are heuristics with evidence and confidence levels — not guarantees.
 
 ## 12. Future work
