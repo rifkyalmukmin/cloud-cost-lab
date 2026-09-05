@@ -1,0 +1,59 @@
+# ============================================================
+# Cloud Cost Lab — .gitignore
+# Secrets must never be committed. See docs/cost-safety.md.
+# ============================================================
+
+# --- Secrets / environment ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*credentials*.json
+*service-account*.json
+secrets/
+
+# --- Python (apps/api, analytics) ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# --- Node / Next.js (apps/web) ---
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+npm-debug.log*
+yarn-error.log*
+
+# --- Terraform (Phase 11) ---
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+
+# --- Local data artifacts (never commit generated dumps) ---
+*.sqlite3
+*.db
+backups/
+exports/
+data/local/
+
+# --- Generated reports (docs/reports templates are tracked) ---
+docs/reports/generated/
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
