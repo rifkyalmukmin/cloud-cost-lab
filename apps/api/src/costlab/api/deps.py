@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 from costlab.db.session import get_session
 from costlab.schemas.common import Environment
 from costlab.schemas.cost import CostFilters
+from costlab.schemas.resources import ResourceFilters
 
 SessionDep = Annotated[Session, Depends(get_session)]
 
@@ -90,3 +91,40 @@ def pagination(
 
 
 PaginationDep = Annotated[Pagination, Depends(pagination)]
+
+
+def resource_filters(
+    project_id: Annotated[
+        str | None, Query(max_length=64, description="GCP-style project id.")
+    ] = None,
+    service: Annotated[
+        str | None, Query(max_length=64, description="Service slug, e.g. compute-engine.")
+    ] = None,
+    region: Annotated[
+        str | None, Query(max_length=64, description="GCP region, e.g. us-central1.")
+    ] = None,
+    environment: Annotated[
+        Environment | None, Query(description="development | staging | production")
+    ] = None,
+    status: Annotated[
+        str | None, Query(max_length=32, description="Exact status, e.g. RUNNING.")
+    ] = None,
+    owner: Annotated[str | None, Query(max_length=64, description="Exact owner label.")] = None,
+    team: Annotated[str | None, Query(max_length=64, description="Exact team label.")] = None,
+    unallocated: Annotated[
+        bool, Query(description="Only resources missing owner or team (UNALLOCATED).")
+    ] = False,
+) -> ResourceFilters:
+    return ResourceFilters(
+        project_id=project_id,
+        service=service,
+        region=region,
+        environment=environment,
+        status=status,
+        owner=owner,
+        team=team,
+        unallocated=unallocated,
+    )
+
+
+ResourceFiltersDep = Annotated[ResourceFilters, Depends(resource_filters)]

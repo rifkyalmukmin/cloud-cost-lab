@@ -208,4 +208,114 @@ export const api = {
   costByEnvironment: (filters: CostFilters) =>
     request<EnvironmentBreakdownResponse>("/api/cost/by-environment", filters),
   listCostRecords: (filters: CostFilters) => request<CostRecordsResponse>("/api/cost", filters),
+  listResources: (filters: ResourceFilters = {}) =>
+    request<ResourceListResponse>("/api/resources", {}, buildResourceParams(filters)),
+  getResource: (resourceId: string) =>
+    request<ResourceDetailResponse>(`/api/resources/${encodeURIComponent(resourceId)}`),
 };
+
+// ---------------------------------------------------------------------------
+// Resource inventory (Phase 3)
+// ---------------------------------------------------------------------------
+
+export interface ResourceWindow {
+  start: string;
+  end: string;
+}
+
+export interface ResourceCostSummary {
+  monthly_cost: number;
+  monthly_credits: number;
+  monthly_net_cost: number;
+}
+
+/** Monthly cost covers a trailing 30-day window anchored to the data.
+ * potential_saving stays null until the Phase 4 recommendation engine exists. */
+export interface ResourceItem {
+  resource_id: string;
+  resource_name: string;
+  resource_type: string;
+  service_id: string;
+  service_name: string;
+  project_id: string;
+  project_name: string;
+  region: string;
+  zone: string | null;
+  status: string;
+  environment: Environment;
+  machine_type: string | null;
+  owner: string | null;
+  team: string | null;
+  application: string | null;
+  labels: Record<string, string>;
+  created_at: string | null;
+  last_seen: string | null;
+  monthly_cost: number | null;
+  monthly_credits: number | null;
+  monthly_net_cost: number | null;
+  cpu_utilization: number | null;
+  memory_utilization: number | null;
+  potential_saving: null;
+}
+
+export interface ResourceListResponse {
+  window: ResourceWindow | null;
+  pagination: Pagination;
+  summary: ResourceCostSummary | null;
+  items: ResourceItem[];
+}
+
+export interface CostHistoryPoint {
+  date: string;
+  cost: number;
+  credits: number;
+  net_cost: number;
+}
+
+export interface UtilizationPoint {
+  date: string;
+  cpu_utilization: number | null;
+  memory_utilization: number | null;
+  disk_utilization: number | null;
+  network_in_mb: number | null;
+  network_out_mb: number | null;
+  request_count: number | null;
+  error_rate_pct: number | null;
+}
+
+export interface ResourceDetailResponse extends Omit<ResourceItem, "potential_saving"> {
+  potential_saving: null;
+  window: ResourceWindow | null;
+  total_cost: number | null;
+  total_net_cost: number | null;
+  cost_history: CostHistoryPoint[];
+  utilization: UtilizationPoint[];
+}
+
+export interface ResourceFilters {
+  projectId?: string;
+  service?: string;
+  region?: string;
+  environment?: Environment;
+  status?: string;
+  owner?: string;
+  team?: string;
+  unallocated?: boolean;
+  page?: number;
+  pageSize?: number;
+}
+
+function buildResourceParams(filters: ResourceFilters): Record<string, string> {
+  const params: Record<string, string> = {};
+  if (filters.projectId) params["project_id"] = filters.projectId;
+  if (filters.service) params["service"] = filters.service;
+  if (filters.region) params["region"] = filters.region;
+  if (filters.environment) params["environment"] = filters.environment;
+  if (filters.status) params["status"] = filters.status;
+  if (filters.owner) params["owner"] = filters.owner;
+  if (filters.team) params["team"] = filters.team;
+  if (filters.unallocated) params["unallocated"] = "true";
+  if (filters.page) params["page"] = String(filters.page);
+  if (filters.pageSize) params["page_size"] = String(filters.pageSize);
+  return params;
+}
