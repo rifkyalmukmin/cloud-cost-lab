@@ -13,7 +13,7 @@ from datetime import timedelta
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import Select, and_, func, or_, select
+from sqlalchemy import Select, Subquery, and_, func, or_, select
 from sqlalchemy.orm import Session
 
 from costlab.analytics.cost import _money
@@ -47,7 +47,7 @@ class ResourceRow:
     owner: str | None
     team: str | None
     application: str | None
-    labels: dict
+    labels: dict[str, Any]
     created_at: Any | None
     last_seen: Any | None
     monthly_cost: float | None
@@ -65,7 +65,7 @@ def get_window(session: Session) -> ResourceWindow | None:
     return ResourceWindow(start=max_date - timedelta(days=WINDOW_DAYS - 1), end=max_date)
 
 
-def apply_filters(stmt: Select, filters: ResourceFilters) -> Select:
+def apply_filters(stmt: Select[Any], filters: ResourceFilters) -> Select[Any]:
     if filters.project_id:
         stmt = stmt.where(Resource.project_id == filters.project_id)
     if filters.service:
@@ -86,7 +86,7 @@ def apply_filters(stmt: Select, filters: ResourceFilters) -> Select:
     return stmt
 
 
-def _monthly_cost_subquery(window: ResourceWindow):
+def _monthly_cost_subquery(window: ResourceWindow) -> Subquery:
     return (
         select(
             CostRecord.resource_id,
@@ -100,7 +100,7 @@ def _monthly_cost_subquery(window: ResourceWindow):
     )
 
 
-def _latest_usage_subquery():
+def _latest_usage_subquery() -> Subquery:
     latest = (
         select(
             ResourceUsage.resource_id,
@@ -126,7 +126,9 @@ def _latest_usage_subquery():
     )
 
 
-def _base_query(filters: ResourceFilters, window: ResourceWindow, cost_sub) -> Select:
+def _base_query(
+    filters: ResourceFilters, window: ResourceWindow, cost_sub: Subquery
+) -> Select[Any]:
     usage_sub = _latest_usage_subquery()
     stmt = (
         select(
@@ -238,7 +240,7 @@ def list_resources(
     return rows, pagination, summary, window
 
 
-def get_resource_detail(session: Session, resource_id: str) -> dict | None:
+def get_resource_detail(session: Session, resource_id: str) -> dict[str, Any] | None:
     """Full detail for one resource, or None when the id is unknown."""
     window = get_window(session)
     resource = session.get(Resource, resource_id)

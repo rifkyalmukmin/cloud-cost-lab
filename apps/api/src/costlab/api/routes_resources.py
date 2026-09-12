@@ -83,7 +83,7 @@ def get_resource(session: SessionDep, resource_id: str) -> ResourceDetailRespons
         region=resource.region,
         zone=resource.zone,
         status=resource.status,
-        environment=resource.environment,  # type: ignore[arg-type]  # enumerated column
+        environment=resource.environment,
         machine_type=resource.machine_type,
         owner=resource.owner,
         team=resource.team,

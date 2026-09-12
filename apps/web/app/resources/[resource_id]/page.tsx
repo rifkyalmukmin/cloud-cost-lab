@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { EnvironmentBadge } from "@/components/cost/environment-badge";
 import { CostTrendChart } from "@/components/cost/cost-trend-chart";
 import { ChartCard } from "@/components/cost/chart-card";
-import { DetailCard, OwnershipValue, UnallocatedBadge, UtilizationMeter } from "@/components/resources/resource-ui";
+import { OwnershipValue, UnallocatedBadge, UtilizationMeter } from "@/components/resources/resource-ui";
 import { UtilizationChart } from "@/components/resources/utilization-chart";
 import { SectionError } from "@/components/data-state";
 import { Badge } from "@/components/ui/badge";
@@ -46,9 +46,9 @@ export default function ResourceDetailPage() {
     return (
       <div className="space-y-4">
         <SectionError state={detail} />
-        <Button asChild variant="outline" size="sm">
-          <Link href="/resources">← Back to Resource Inventory</Link>
-        </Button>
+      <Button render={<Link href="/resources" />} variant="outline" size="sm">
+        ← Back to Resource Inventory
+      </Button>
       </div>
     );
   }

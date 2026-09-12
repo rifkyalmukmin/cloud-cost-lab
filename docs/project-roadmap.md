@@ -1,6 +1,6 @@
 # Project Roadmap — Cloud Cost Lab
 
-> Status: living document · Last updated: 2026-09-05
+> Status: living document · Last updated: 2026-09-12
 > Rule: one phase at a time. A phase is never "done" because it compiles — see Definition of Done below.
 
 ---
@@ -12,7 +12,7 @@
 | 0 | Planning & Foundation | Architecture, ADRs, repository structure, cost-safety & security strategy, roadmap | ✅ **Done (this commit)** |
 | 1 | Local Mock Platform | FastAPI + PostgreSQL + Docker Compose + mock dataset, provider abstraction, `/health` | ✅ **Done** |
 | 2 | Cost Explorer | Cost aggregation, WoW/MoM, breakdowns, filters, first dashboard pages | ✅ **Done** |
-| 3 | Resource Inventory | Resources, usage series, cost↔utilization linkage | ⬜ Pending |
+| 3 | Resource Inventory | Resources, usage series, cost↔utilization linkage | ✅ **Done** |
 | 4 | Recommendation Engine | Idle detection, rightsizing, storage rules, lifecycle (OPEN→…→VERIFIED) | ⬜ Pending |
 | 5 | Budget | Budget model, thresholds, projected month-end, budget-risk alerts | ⬜ Pending |
 | 6 | Forecasting | 30-day moving average / linear regression with range | ⬜ Pending |
@@ -33,22 +33,19 @@ Milestone grouping:
 
 - **Foundation:** 0–1 · **Core product:** 2–8 · **Cloud & hardening:** 9–13 · **FinOps depth & portfolio:** 14–18
 
-## 2. Current phase: PHASE 2 — Cost Dashboard (complete)
+## 2. Current phase: PHASE 3 — Resource Inventory (complete)
 
-Delivered in this phase:
+- `GET /api/resources` — filtered (`project_id`, `service`, `region`, `environment`, `status`, `owner`, `team` + `unallocated` audit flag) and paginated inventory; each item joins resource metadata with **monthly cost** (trailing 30 days anchored to the data, never the wall clock) and the **latest utilization** sample; response carries a `window` and a `summary` covering the full filtered set, ordered by monthly cost DESC.
+- `GET /api/resources/{id}` — full detail: metadata, ownership, labels, all-time totals, daily **cost history** and **utilization** series; structured 404 with request id for unknown ids.
+- `/resources` — inventory table (Resource, Type, Project, Region, Environment, Status, Monthly Cost, CPU, Memory, Potential Saving) with filter bar, UNALLOCATED-only checkbox, server-side pagination; rows link to the detail view.
+- `/resources/{id}` — detail view with cost summary cards, cost-history chart, CPU/memory utilization chart, ownership, metadata and label cards.
+- **UNALLOCATED rule** (CLAUDE.md §12): missing owner/team is surfaced as `null` + amber badge and a dedicated `unallocated=true` filter — ownership is never guessed. `potential_saving` stays explicitly `null` until Phase 4.
+- Backend: 21 new pytest tests (62 total) covering filtering, pagination, 404/422, empty results, unallocated resources, and dataset cross-checks. Docs: [`docs/resource-inventory.md`](resource-inventory.md).
+- Phase 2 (Cost Explorer) summary: see [`docs/dashboard.md`](dashboard.md).
 
-- Next.js 15 + TypeScript (strict) + Tailwind v4 + shadcn/ui + Recharts dashboard in `apps/web`.
-- `/` Overview: Current Month (MTD), Previous Month, MoM Change (**MTD vs prior MTD**, not partial-vs-full), Projected Month-End (**linear run-rate, labelled estimate**), Potential Savings (**honest empty state** until Phase 4), daily cost trend, and cost by service / project / environment — every number fetched from the Phase 1 API.
-- `/cost` Cost Explorer: date/service/project/environment filters (option lists fetched from the API), daily/weekly/monthly trend switch, three breakdown tables, and server-side paginated cost records (10/25/50 per page).
-- Uniform section states everywhere: loading (skeleton), error (API message + request id + retry), empty (hint), success; refetches dim instead of flashing.
-- Typed API client (`lib/api.ts`) mirroring the FastAPI schemas; `useApi` hook (abortable + retryable); derived metrics as pure unit-tested functions (vitest, 8 tests).
-- Backend: CORS for the dashboard origin (`CORS_ORIGINS`, GET-only, no credentials) + 2 new pytest tests (41 total).
-- Verified in-browser: live data matches the API to the cent; filter → Cloud SQL = 194 records; pagination Page 2 of 8; reset works; zero console errors; mobile stacks cleanly.
-- Docs: [`docs/dashboard.md`](dashboard.md) (pages, states, trade-offs), README + `apps/web/README.md` updated.
+## 3. Next phase: PHASE 4 — Recommendation Engine (not started)
 
-## 3. Next phase: PHASE 3 — Resource Inventory (not started)
-
-Planned scope: `/api/resources` + `/api/resources/{id}` endpoints, resource inventory page with utilization↔cost linkage, resource detail view. Entry criteria: this phase merged. **Do not start until explicitly instructed.**
+Planned scope: idle detection, rightsizing, storage rules; recommendation lifecycle (OPEN → APPROVED → IMPLEMENTED → VERIFIED) with evidence, risk, confidence and human approval. Entry criteria: this phase merged. **Do not start until explicitly instructed.**
 
 ## 4. Definition of Done (applies to every phase)
 

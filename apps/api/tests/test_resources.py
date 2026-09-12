@@ -52,6 +52,12 @@ def test_list_resources_pagination(client: TestClient) -> None:
     beyond = client.get("/api/resources", params={"page": 4, "page_size": 5}).json()
     assert beyond["items"] == []
 
+    # consecutive pages must not repeat resources
+    page2 = client.get("/api/resources", params={"page": 2, "page_size": 5}).json()
+    ids1 = {item["resource_id"] for item in body["items"]}
+    ids2 = {item["resource_id"] for item in page2["items"]}
+    assert ids1.isdisjoint(ids2)
+
 
 def test_list_resources_ordered_by_monthly_cost_desc(client: TestClient) -> None:
     body = client.get("/api/resources", params={"page_size": 100}).json()
@@ -97,6 +103,23 @@ def test_list_resources_fields_complete(client: TestClient) -> None:
         assert required <= set(item.keys()), f"missing fields: {required - set(item.keys())}"
         # Phase 3 contract: potential saving stays null until Phase 4 exists.
         assert item["potential_saving"] is None
+
+
+def test_list_resources_latest_utilization_attached(client: TestClient) -> None:
+    """The latest utilization sample joins onto the list; resources without the
+    metric (storage buckets) stay null — never zero, never guessed."""
+    usage_rows = json.loads((MOCK_DIR / "usage.json").read_text(encoding="utf-8"))
+    latest = max(
+        (r for r in usage_rows if r["resource_id"] == "vm-shop-api-prod-1"),
+        key=lambda r: r["usage_date"],
+    )
+    body = client.get("/api/resources").json()
+    item = next(i for i in body["items"] if i["resource_id"] == "vm-shop-api-prod-1")
+    assert item["cpu_utilization"] == latest["cpu_utilization"]
+    assert item["memory_utilization"] == latest["memory_utilization"]
+
+    bucket = next(i for i in body["items"] if i["resource_id"] == "gcs-shop-assets-prod")
+    assert bucket["cpu_utilization"] is None
 
 
 def test_filter_by_service(client: TestClient) -> None:
@@ -249,3 +272,22 @@ def test_idle_vm_latest_utilization_is_low(client: TestClient) -> None:
     body = client.get("/api/resources/vm-report-dev-1").json()
     assert body["cpu_utilization"] is not None
     assert body["cpu_utilization"] < 5.0
+
+
+def test_validation_page_zero_rejected(client: TestClient) -> None:
+    response = client.get("/api/resources", params={"page": 0})
+    assert response.status_code == 422
+
+
+def test_validation_unknown_environment_rejected(client: TestClient) -> None:
+    response = client.get("/api/resources", params={"environment": "chaos"})
+    assert response.status_code == 422
+
+
+def test_resource_detail_storage_bucket_has_no_cpu_series(client: TestClient) -> None:
+    detail = client.get("/api/resources/gcs-shop-assets-prod").json()
+    assert detail["cpu_utilization"] is None
+    assert detail["memory_utilization"] is None
+    # Storage exposes network + request metrics instead of compute utilization.
+    assert any(point["network_in_mb"] is not None for point in detail["utilization"])
+    assert any(point["request_count"] is not None for point in detail["utilization"])

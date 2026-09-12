@@ -4,7 +4,7 @@
 
 Cloud Cost Lab aggregates cloud cost and resource utilization data, detects waste and optimization opportunities, estimates **potential** savings, monitors budgets, forecasts future cost with explicit uncertainty, and produces evidence-based recommendations that require **human approval** before any impactful action.
 
-**Current status: PHASE 2 — Cost Dashboard complete.** Next.js dashboard (overview + cost explorer) on top of the Phase 1 mock cost engine (`DEMO_MODE=true`). See [`docs/project-roadmap.md`](docs/project-roadmap.md).
+**Current status: PHASE 3 — Resource Inventory complete.** Resource inventory with cost↔utilization linkage (`/resources`) on top of the Phase 2 dashboard and the Phase 1 mock cost engine (`DEMO_MODE=true`). See [`docs/project-roadmap.md`](docs/project-roadmap.md).
 
 ---
 
@@ -74,7 +74,7 @@ DEMO_MODE=true   →   synthetic billing + utilization data (data/mock/)
 
 Mock and real data sources implement the same `BillingDataProvider` interface, so the dashboard and recommendation engine behave identically in both modes. See `docs/decisions/ADR-003-demo-mode.md`.
 
-### Run it locally (Phase 1 + 2)
+### Run it locally (Phase 1–3)
 
 ```bash
 cp .env.example .env
@@ -97,6 +97,10 @@ GET /api/cost/trend              daily / weekly / monthly buckets
 GET /api/cost/by-service         breakdown with share of total
 GET /api/cost/by-project         breakdown with share of total
 GET /api/cost/by-environment     development / staging / production
+GET /api/resources               resource inventory: filters + pagination,
+                                 monthly cost (trailing 30d) + latest utilization
+GET /api/resources/{id}          detail: cost history + utilization series,
+                                 metadata, ownership, labels
 ```
 
 Phase 2 dashboard:
@@ -108,6 +112,12 @@ Phase 2 dashboard:
 /cost                            Cost Explorer: filters (date, service, project,
                                  environment), granularity switch, breakdown tables,
                                  paginated cost records
+/resources                       Resource Inventory: filters + UNALLOCATED-only
+                                 toggle, server-side pagination, monthly cost,
+                                 CPU / memory meters, potential saving (Phase 4)
+/resources/{id}                  Resource detail: cost history + utilization charts,
+                                 ownership (UNALLOCATED when missing), metadata,
+                                 labels
 ```
 
 Every dashboard section handles loading / error / empty / success states; Potential Savings is an explicit empty state until the recommendation engine exists (Phase 4). Details: [`docs/dashboard.md`](docs/dashboard.md) · Backend setup & testing: [`docs/local-development.md`](docs/local-development.md) · What the numbers mean: [`docs/cost-model.md`](docs/cost-model.md).
@@ -135,7 +145,7 @@ Full policy: [`docs/cost-safety.md`](docs/cost-safety.md).
 cloud-cost-lab/
 ├── apps/
 │   ├── api/            FastAPI backend — Phase 1 IMPLEMENTED (src/, alembic/, tests/)
-│   └── web/            Next.js dashboard — Phase 2 IMPLEMENTED (overview + cost explorer)
+│   └── web/            Next.js dashboard — Phase 2–3 IMPLEMENTED (overview, cost explorer, resource inventory)
 ├── analytics/          cost / utilization / recommendations / forecasting modules
 ├── data/
 │   └── mock/           committed deterministic dataset + generator scenario source

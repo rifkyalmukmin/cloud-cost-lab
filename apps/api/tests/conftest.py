@@ -13,7 +13,10 @@ from pathlib import Path
 
 TESTS_DIR = Path(__file__).resolve().parent
 API_DIR = TESTS_DIR.parent
-REPO_ROOT = API_DIR.parent
+# apps/api/tests -> repo root (two levels above the API package).
+REPO_ROOT = API_DIR.parent.parent
+
+MOCK_DATA_DIR = REPO_ROOT / "data" / "mock"
 
 
 def _load_repo_root_env() -> None:
@@ -32,6 +35,9 @@ def _load_repo_root_env() -> None:
 
 
 _load_repo_root_env()
+# The default mock_data_dir is CWD-relative ("data/mock"); anchor it to the
+# repository so pytest works from any directory (e.g. apps/api).
+os.environ.setdefault("MOCK_DATA_DIR", str(MOCK_DATA_DIR))
 
 import pytest  # noqa: E402
 from alembic import command as alembic_command  # noqa: E402

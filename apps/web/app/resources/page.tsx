@@ -5,7 +5,7 @@ import { useState } from "react";
 
 import { TableCard } from "@/components/data-state";
 import { EnvironmentBadge } from "@/components/cost/environment-badge";
-import { OwnershipValue, UnallocatedBadge, UtilizationMeter } from "@/components/resources/resource-ui";
+import { UnallocatedBadge, UtilizationMeter } from "@/components/resources/resource-ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
