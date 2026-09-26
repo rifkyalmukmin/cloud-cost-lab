@@ -45,6 +45,23 @@ export default function RecommendationDetailPage() {
     }
   };
 
+  const recordLifecycle = async (kind: "implement" | "verify") => {
+    setBusy(true);
+    setDecisionError(null);
+    try {
+      if (kind === "implement") {
+        await api.implementRecommendation(id);
+      } else {
+        await api.verifyRecommendation(id);
+      }
+      detail.retry();
+    } catch (cause) {
+      setDecisionError(cause instanceof Error ? cause.message : "Action failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (detail.isLoading) {
     return (
       <div className="space-y-4">
@@ -171,7 +188,7 @@ export default function RecommendationDetailPage() {
             <>
               <p className="text-sm text-muted-foreground">
                 Approving records a human decision only — the platform will not modify any
-                infrastructure. Implementation and verification belong to later phases.
+                infrastructure.
               </p>
               <div className="flex items-center gap-2">
                 <Button disabled={busy} onClick={() => decide("approve")}>
@@ -183,10 +200,35 @@ export default function RecommendationDetailPage() {
               </div>
               {decisionError ? <p className="text-sm text-destructive">{decisionError}</p> : null}
             </>
+          ) : data.status === "APPROVED" ? (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Approved. When the change has actually been made (by you), record it as
+                implemented — then verify with actual before/after data.
+              </p>
+              <div className="flex items-center gap-2">
+                <Button disabled={busy} onClick={() => recordLifecycle("implement")}>
+                  Mark implemented
+                </Button>
+              </div>
+              {decisionError ? <p className="text-sm text-destructive">{decisionError}</p> : null}
+            </div>
+          ) : data.status === "IMPLEMENTED" ? (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Verify compares actual net cost before vs after the implementation date. It refuses
+                while post-change data does not exist yet — savings stay potential until measured.
+              </p>
+              <div className="flex items-center gap-2">
+                <Button disabled={busy} onClick={() => recordLifecycle("verify")}>
+                  Verify savings
+                </Button>
+              </div>
+              {decisionError ? <p className="text-sm text-destructive">{decisionError}</p> : null}
+            </div>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Decision recorded: <StatusBadge status={data.status} /> Only OPEN recommendations can
-              change state.
+              Lifecycle state: <StatusBadge status={data.status} />
             </p>
           )}
         </CardContent>

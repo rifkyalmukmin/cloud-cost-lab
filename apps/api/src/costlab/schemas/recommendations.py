@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 from costlab.schemas.cost import PaginationOut, PeriodOut
 
@@ -22,6 +22,30 @@ class EvidenceItem(BaseModel):
     value: float | None = None
     threshold: float | None = None
     unit: str | None = None
+
+
+class VerificationResponse(BaseModel):
+    id: str
+    status: str
+    realized_savings: float | None
+    source: str  # "data" | "reported"
+    before_daily_avg: float | None
+    after_daily_avg: float | None
+    before_days: int
+    after_days: int
+
+
+class ImplementBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    implemented_at: datetime | None = None  # backfill for verification exercises
+
+
+class VerifyBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    actual_cost_after: float | None = Field(default=None, gt=0)
+    note: str | None = Field(default=None, max_length=256)
 
 
 class RecommendationItem(BaseModel):
@@ -49,6 +73,10 @@ class RecommendationItem(BaseModel):
     priority: str
     approval_required: bool
     status: str
+    implemented_at: datetime | None
+    verified_at: datetime | None
+    actual_cost_after: float | None
+    realized_savings: float | None
 
     window: PeriodOut | None
     created_at: datetime
@@ -75,3 +103,36 @@ class RunResponse(BaseModel):
 class TransitionResponse(BaseModel):
     id: str
     status: str
+
+
+class StatusSavings(BaseModel):
+    count: int
+    potential_savings: float
+
+
+class SavingsSummaryResponse(BaseModel):
+    """Potential vs realized (CLAUDE.md §23) — realized only ever comes from
+    VERIFIED rows with actual before/after measurement."""
+
+    potential_savings: float
+    approved_savings: float
+    implemented: StatusSavings
+    verified: StatusSavings
+    realized_savings: float
+    rejected_savings_foregone: float
+    by_status: dict[str, StatusSavings]
+
+
+class AuditLogOut(BaseModel):
+    timestamp: datetime
+    actor: str
+    action: str
+    entity_type: str
+    entity_id: str
+    details: dict[str, object]
+    request_id: str | None
+
+
+class AuditLogListResponse(BaseModel):
+    pagination: PaginationOut
+    items: list[AuditLogOut]

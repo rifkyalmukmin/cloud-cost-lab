@@ -260,6 +260,28 @@ export const api = {
     request<ForecastResponse>("/api/forecast", {}, buildForecastParams(filters)),
   listAnomalies: (filters: AnomalyFilters = {}) =>
     request<AnomalyListResponse>("/api/anomalies", {}, buildAnomalyParams(filters)),
+  getSavings: () => request<SavingsSummaryResponse>("/api/recommendations/savings"),
+  listAuditLogs: (entityId?: string) =>
+    request<AuditLogListResponse>(
+      "/api/recommendations/audit-logs",
+      {},
+      entityId ? { entity_id: entityId } : {},
+    ),
+  implementRecommendation: (id: string, implementedAt?: string) =>
+    request<{ id: string; status: string }>(
+      `/api/recommendations/${encodeURIComponent(id)}/implement`,
+      {},
+      {},
+      "POST",
+      implementedAt ? { implemented_at: implementedAt } : {},
+    ),
+  verifyRecommendation: (id: string) =>
+    request<VerificationResponse>(
+      `/api/recommendations/${encodeURIComponent(id)}/verify`,
+      {},
+      {},
+      "POST",
+    ),
 };
 
 // ---------------------------------------------------------------------------
@@ -490,6 +512,10 @@ export interface RecommendationItem {
   priority: "HIGH" | "MEDIUM" | "LOW";
   approval_required: boolean;
   status: RecommendationStatus;
+  implemented_at: string | null;
+  verified_at: string | null;
+  actual_cost_after: number | null;
+  realized_savings: number | null;
   window: Period | null;
   created_at: string;
   updated_at: string;
@@ -739,4 +765,49 @@ export interface FreshnessResponse {
   last_updated: string | null;
   data_age_hours: number | null;
   max_age_hours: number;
+}
+
+// ---------------------------------------------------------------------------
+// Savings verification (Phase 13)
+// ---------------------------------------------------------------------------
+
+export interface StatusSavings {
+  count: number;
+  potential_savings: number;
+}
+
+export interface SavingsSummaryResponse {
+  potential_savings: number;
+  approved_savings: number;
+  implemented: StatusSavings;
+  verified: StatusSavings;
+  realized_savings: number;
+  rejected_savings_foregone: number;
+  by_status: Record<RecommendationStatus, StatusSavings>;
+}
+
+export interface AuditLogItem {
+  timestamp: string;
+  actor: string;
+  action: string;
+  entity_type: string;
+  entity_id: string;
+  details: Record<string, string | number>;
+  request_id: string | null;
+}
+
+export interface AuditLogListResponse {
+  pagination: Pagination;
+  items: AuditLogItem[];
+}
+
+export interface VerificationResponse {
+  id: string;
+  status: string;
+  realized_savings: number | null;
+  source: "data" | "reported";
+  before_daily_avg: number | null;
+  after_daily_avg: number | null;
+  before_days: number;
+  after_days: number;
 }

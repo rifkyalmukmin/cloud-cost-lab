@@ -23,30 +23,30 @@
 | 7 | Budget | Budget model, thresholds, projected month-end, budget-risk alerts | ⬜ Pending |
 | 9 | Forecasting | 30-day moving average / linear regression with range | ⬜ Pending |
 | 10 | Anomaly Detection | Rolling average + threshold; z-score later | ⬜ Pending |
-| 13 | Savings Tracking | Potential vs realized savings with verification | ⬜ Pending |
+| 14 | Savings Tracking | Potential vs realized savings with verification | ⬜ Pending |
 | 11 | GCP Integration | Billing Export → BigQuery (cost-protected), real providers | ⬜ Pending |
-| 14 | Monitoring / Freshness | Metrics, structured logs, SLOs, STALE/FRESH labelling | ⬜ Pending |
-| 15 | Terraform | IaC for GCP resources with plan-review + destroy documentation | ⬜ Pending |
-| 16 | Security | Least-privilege IAM, Secret Manager, Gitleaks/Trivy | ⬜ Pending |
-| 17 | CI/CD | GitHub Actions: lint → test → build → security scan → Docker | ⬜ Pending |
-| 18 | FinOps Health Score | Heuristic score: visibility, allocation, optimization, governance, forecasting, automation | ⬜ Pending |
-| 19 | Reports | Daily/weekly/monthly report generation | ⬜ Pending |
-| 20 | AI Advisor | Read-only AI Cloud Cost Advisor with structured context + audit log | ⬜ Pending |
-| 21 | Demo Scenarios | Scripted incidents/scenarios (idle VM, spike, budget risk, …) | ⬜ Pending |
-| 22 | Portfolio Preparation | README polish, screenshots, demo video, CV & interview docs | ⬜ Pending |
+| 15 | Monitoring / Freshness | Metrics, structured logs, SLOs, STALE/FRESH labelling | ⬜ Pending |
+| 16 | Terraform | IaC for GCP resources with plan-review + destroy documentation | ⬜ Pending |
+| 17 | Security | Least-privilege IAM, Secret Manager, Gitleaks/Trivy | ⬜ Pending |
+| 18 | CI/CD | GitHub Actions: lint → test → build → security scan → Docker | ⬜ Pending |
+| 19 | FinOps Health Score | Heuristic score: visibility, allocation, optimization, governance, forecasting, automation | ⬜ Pending |
+| 20 | Reports | Daily/weekly/monthly report generation | ⬜ Pending |
+| 21 | AI Advisor | Read-only AI Cloud Cost Advisor with structured context + audit log | ⬜ Pending |
+| 22 | Demo Scenarios | Scripted incidents/scenarios (idle VM, spike, budget risk, …) | ⬜ Pending |
+| 23 | Portfolio Preparation | README polish, screenshots, demo video, CV & interview docs | ⬜ Pending |
 
 Milestone grouping:
 
 - **Foundation:** 0–1 · **Core product:** 2–12 · **Cloud & hardening:** 13–17 · **FinOps depth & portfolio:** 18–21
 
-## 2. Current phase: PHASE 12 — Observability & SRE (complete)
+## 2. Current phase: PHASE 13 — Savings Tracking (complete)
 
-- **Metrics (§40, all exposed on `/metrics`):** `http_requests_total`, `http_request_duration_seconds` (request middleware, route-templated labels), `billing_records_processed_total` (ingestion), `billing_data_freshness_seconds` (gauge, set on ingest), `recommendations_generated_total` + `recommendation_runs_total{result}` (engine), `forecast_runs_total{result}` (forecast), `bigquery_query_duration_seconds` (billing provider).
-- **Structured JSON logs** — one JSON line per request with request id, method, path, status, duration; correlation via request-id context var.
-- **SLIs/SLOs (§43):** `GET /api/reliability` compares availability (≥ 99.5%), billing freshness (< 24h) and recommendation success (≥ 99%) against targets with met/not-met — the demo dataset honestly fails the freshness SLO.
-- **Alerting:** `GET /api/alerts` evaluates in-process alerts (BillingDataStale/Missing, APIAvailabilityLow, RecommendationPipelineFailing) linked to runbooks; `monitoring/prometheus-rules.yml` mirrors them as Prometheus rules for real deployments.
-- **Incidents + runbooks:** `docs/incidents/INC-001..005` (billing stale, BigQuery failure, API outage, recommendation failure, forecast failure) with exercised MTTD/MTTR; `docs/runbook.md` triage + per-alert procedures.
-- Tests: 11 new (174 total) covering metric exposition, counter increments, SLI/SLO contract, stale-alert firing. README status/roadmap refreshed (README content restored after a Phase 10 script overwrite).
+- **Lifecycle** (CLAUDE.md §23): OPEN → APPROVED → IMPLEMENTED → VERIFIED, REJECTED branch. Transitions enforced per source status (`409` otherwise): `POST /{id}/implement` records `implemented_at` (backfillable), `POST /{id}/verify` computes **realized savings from actual data**.
+- **Before/after calculation:** 30-day net-cost daily averages around the implementation date (≥ 7 after-days required); realized = monthly-equivalent difference; **negative realized stored as measured**; insufficient after-data → `409` and the saving stays potential — simulated numbers are never called realized; a caller-measured `actual_cost_after` is accepted and labelled `source="reported"`.
+- **Audit trail:** append-only `audit_logs` table (actor, action, from→to, details, request id) written on every transition; `GET /api/recommendations/audit-logs` (newest first, bounded).
+- `GET /api/recommendations/savings` — potential (OPEN+APPROVED), approved, implemented, verified, **realized** (VERIFIED-only measured sum) and rejected-foregone, per status.
+- `/savings` UI: five stage cards + lifecycle breakdown + verification explanation; detail page gained Mark-implemented / Verify buttons.
+- Tests: 8 new (190 total) — approve/reject/implement/verify flows, dataset-recomputed realized savings, honesty guards (409 without after-data, negative stored), audit trail. Docs: [`docs/savings.md`](savings.md).
 
 ## 4. Definition of Done (applies to every phase)
 

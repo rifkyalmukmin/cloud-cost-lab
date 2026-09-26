@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { href: "/resources", label: "Resources" },
   { href: "/utilization", label: "Utilization" },
   { href: "/recommendations", label: "Recommendations" },
+  { href: "/savings", label: "Savings" },
   { href: "/forecast", label: "Forecast" },
   { href: "/anomalies", label: "Anomalies" },
   { href: "/budget", label: "Budget" },

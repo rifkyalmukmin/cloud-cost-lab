@@ -163,6 +163,12 @@ class Recommendation(Base):
     approval_required: Mapped[bool] = mapped_column(default=True)
 
     status: Mapped[str] = mapped_column(String(16), default="OPEN", index=True)
+    implemented_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Actual post-change monthly-equivalent cost and the verified reduction.
+    # Null until VERIFIED — simulated estimates are never labelled realized.
+    actual_cost_after: Mapped[Decimal | None] = mapped_column(Numeric(14, 6))
+    realized_savings: Mapped[Decimal | None] = mapped_column(Numeric(14, 6))
     window_start: Mapped[date | None] = mapped_column(Date)
     window_end: Mapped[date | None] = mapped_column(Date)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -216,3 +222,25 @@ class Policy(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+
+class AuditLog(Base):
+    """Append-only audit trail for lifecycle decisions (Phase 13, §23, §34).
+
+    Every recommendation transition (approve/reject/implement/verify) and
+    other state-changing operations append a row here. Rows are never
+    updated or deleted by the application.
+    """
+
+    __tablename__ = "audit_logs"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+    actor: Mapped[str] = mapped_column(String(64), default="local-user")  # no auth system yet
+    action: Mapped[str] = mapped_column(String(32))  # approve|reject|implement|verify|...
+    entity_type: Mapped[str] = mapped_column(String(32))
+    entity_id: Mapped[str] = mapped_column(String(64), index=True)
+    details: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    request_id: Mapped[str | None] = mapped_column(String(64))
