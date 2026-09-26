@@ -27,6 +27,7 @@ function changeBadge(changePct: number | null) {
 
 export default function OverviewPage() {
   const freshness = useApi(() => api.getFreshness(), []);
+  const savings = useApi(() => api.getSavings(), []);
   const monthly = useApi(() => api.costTrend({}, "month"), []);
   const daily = useApi(() => api.costTrend({}, "day"), []);
   const byService = useApi(() => api.costByService({}), []);
@@ -118,9 +119,13 @@ export default function OverviewPage() {
         />
         <CostSummaryCard
           title="Potential Savings"
-          description="From optimization recommendations"
-          badge={<Badge variant="outline">Phase 4</Badge>}
-          value={null}
+          description="From optimization recommendations (estimates)"
+          badge={
+            <Badge variant="outline">
+              {savings.data ? `${savings.data.by_status.OPEN?.count ?? 0} open · ${savings.data.by_status.APPROVED?.count ?? 0} approved` : "…"}
+            </Badge>
+          }
+          value={savings.data ? formatUsd(savings.data.potential_savings) : null}
           sub="The recommendation engine is not built yet — no savings number can honestly exist."
           state="empty"
         />

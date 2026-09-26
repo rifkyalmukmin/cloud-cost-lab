@@ -2,226 +2,164 @@
 
 > **GCP FinOps & Cloud Cost Optimization Platform**
 
-Cloud Cost Lab aggregates cloud cost and resource utilization data, detects waste and optimization opportunities, estimates **potential** savings, monitors budgets, forecasts future cost with explicit uncertainty, and produces evidence-based recommendations that require **human approval** before any impactful action.
+Cloud Cost Lab connects cloud **cost** with resource **utilization** and **performance** to answer the questions a cloud console can't: where the money goes, what is idle or oversized, what it might save, and whether those savings were *actually* realized. It forecasts spend with explicit uncertainty, watches budgets, and turns everything into evidence-backed recommendations that require **human approval** — the platform never modifies infrastructure automatically.
 
-**Current status: PHASE 12 — Observability & SRE complete (Prometheus metrics, SLIs/SLOs, alerting, incidents & runbooks).** Secure GitHub Actions pipelines (lint/test/typecheck/build + Gitleaks/Trivy + multi-arch Docker image to GHCR, non-root, never auto-deployed) on top of the GCP infrastructure as code — Prometheus `/metrics`, SLIs vs SLOs (`/api/reliability`), alerting (`/api/alerts` + `monitoring/prometheus-rules.yml`), structured JSON logs and incident runbooks. BigQuery billing and Cloud Monitoring providers remain dormant until real data is enabled (docs/gcp-setup.md, docs/gcp-monitoring.md). See [`docs/project-roadmap.md`](docs/project-roadmap.md).
+**Status:** 16 phases built (planning → portfolio). Demo-first: runs entirely on synthetic data with zero GCP credentials; BigQuery and Cloud Monitoring providers are code-complete and dormant until real data is enabled. Phase detail: [`docs/project-roadmap.md`](docs/project-roadmap.md).
+
+**Quality gates:** 198 backend tests (pytest, strict mypy) · 8 frontend tests (vitest, strict tsc) · ruff + ESLint clean · CI with Gitleaks + Trivy · multi-arch (amd64/arm64) non-root Docker image · Terraform validated (never applied).
 
 ---
 
-## 1. Problem
+## 1. Project overview
 
-Cloud bills are opaque for most engineers. Typical questions that are hard to answer with a cloud console alone:
+Cloud Cost Lab is a full-stack FinOps platform built as a deep-skill portfolio project. It implements the complete optimization loop:
+
+1. **Collect** — billing, resource and monitoring data through a provider abstraction (mock today, GCP tomorrow).
+2. **Understand** — cost analytics (trends, breakdowns), utilization statistics (avg/min/max/P95/σ), and cost↔utilization↔performance linkage.
+3. **Detect** — rule-based recommendation engine (idle, oversized, unused disk, storage retention, cost anomalies) and point-level anomaly detection (rolling baseline + z-score).
+4. **Decide** — every recommendation carries evidence, potential savings, risk, confidence and effort; humans approve, reject, implement and verify.
+5. **Prove** — realized savings are measured from actual before/after cost data; simulated estimates are never called realized.
+6. **Watch** — budgets, governance policies, SLIs/SLOs, alerting, audit trail.
+
+## 2. Problem
+
+Cloud bills are opaque for most engineers:
 
 - Where did the money actually go this month, and why did it change?
-- Which resources are idle or overprovisioned, and what evidence proves it?
-- How much could be saved — and how much **was actually saved** after an optimization?
+- Which resources are idle or overprovisioned — and what **evidence** proves it?
+- How much could be saved, and how much **was actually saved** after an optimization?
 - Will we exceed the budget before the month ends?
 - Which optimization should be done first, and what is the risk?
 
-Cloud Cost Lab is built to answer these questions with data, not guesses.
+Consoles show costs; they don't join them to utilization, don't quantify uncertainty, and don't enforce a human approval loop. Cloud Cost Lab is built to answer these questions with data — and to say *"insufficient evidence"* when the data isn't there.
 
-## 2. Target users
-
-- **Primary:** the project author — a 4th-semester informatics student building deep, demonstrable skills for Cloud Engineer / DevOps / Infrastructure / SRE / Platform / FinOps careers.
-- **Secondary:** anyone learning FinOps on GCP with a small budget; small teams who want a readable cost-optimization reference implementation.
-
-## 3. Why FinOps
-
-FinOps connects engineering decisions (instance types, schedules, retention, labeling) to financial outcomes. Building this project demonstrates: cost visibility, cost allocation, resource efficiency, forecasting, governance, and cost-aware automation — the difference between "deployed something" and "operated it responsibly".
-
-## 4. Architecture (summary)
+## 3. Architecture
 
 ```text
-GCP (Billing Export + Monitoring)          ← Phase 9+ / or mock data (default)
+GCP (Billing Export → BigQuery, Cloud Monitoring)   ← dormant; mock data by default
             │
-      Data Collector  (apps/api)           ← provider abstraction: Mock | Real
+      Data Providers        BillingDataProvider │ MonitoringDataProvider
+            │               Mock ⋄ GCP (same contract, ADR-003)
+      PostgreSQL (cost database) — migrations via Alembic
             │
-      PostgreSQL (cost database)
+      Analytics layer       cost · utilization · recommendations ·
+            │               forecasting · anomalies · savings · budget · policies
+      Observability         Prometheus /metrics · SLIs/SLOs · alerts · JSON logs
             │
-   Cost Analytics ── Usage Analytics       ← analytics/
+      AI Cloud Cost Advisor (READ-ONLY, pluggable provider)
             │
-   Recommendation Engine                   ← rule-based + optional AI layer (read-only)
-            │
-   Next.js Dashboard (apps/web)            ← costs / savings / forecast / budget
-            │
-   Alerts → Human Approval → Optional bounded action
+      Next.js Dashboard     overview · cost · resources · utilization ·
+            │               recommendations · savings · forecast · budget · policies
+      Human Approval        audit trail · no automatic infrastructure changes
 ```
 
-Full detail: [`docs/architecture.md`](docs/architecture.md).
+## 4. Technology stack
 
-## 5. Technology stack
-
-| Layer | Choice | Rationale |
+| Layer | Choice | Why |
 | --- | --- | --- |
-| Frontend | Next.js + TypeScript (strict) + Tailwind + shadcn/ui | Dashboard-first, typed data contracts |
-| Backend | FastAPI + Python + Pydantic | Fast to build, validation built-in, great for data work |
-| Database | PostgreSQL | Window functions, JSONB for labels, production-realistic |
-| Analytics | SQL + Python (Pandas only where it clearly helps) | Simple, testable business logic |
-| Cloud | GCP | Author's cloud; Billing Export + Monitoring are first-class |
-| IaC | Terraform | Reproducible, reviewable, destroyable infrastructure |
-| CI/CD | GitHub Actions | Lint, test, build, security scans (Trivy, Gitleaks) |
-| AI | Pluggable LLM provider, **read-only by default** | Analysis/explanation only; no destructive actions |
+| Frontend | Next.js 15 + TypeScript (strict) + Tailwind + shadcn/ui + Recharts | Dashboard-first, typed API contracts, uniform data states |
+| Backend | FastAPI + Python 3.13 + Pydantic + SQLAlchemy + Alembic | Validation at the boundary, testable business logic |
+| Database | PostgreSQL 16 | Window functions, JSONB labels, production-realistic |
+| Analytics | SQL aggregation + pure Python functions | Averages/P95/z-scores computed in SQL, unit-tested in Python |
+| Cloud | GCP (BigQuery, Cloud Monitoring, IAM) | Billing Export + Monitoring are first-class |
+| IaC | Terraform (validated, never applied) | Reviewable plan → human decision → apply |
+| CI/CD | GitHub Actions | ruff/mypy/pytest · ESLint/tsc/vitest/build · Gitleaks · Trivy · multi-arch Docker |
+| AI | Pluggable provider, deterministic offline default | Read-only advisor; LLM optional via env key |
 
-Trade-offs and rejected alternatives are documented in the [ADRs](docs/decisions/).
+Trade-offs and rejected alternatives: [ADRs](docs/decisions/).
 
-## 6. Demo mode (works without GCP)
+## 5. Demo
 
-The platform **must run with zero GCP credentials**:
-
-```text
-DEMO_MODE=true   →   synthetic billing + utilization data (data/mock/)
-```
-
-Mock and real data sources implement the same `BillingDataProvider` interface, so the dashboard and recommendation engine behave identically in both modes. See `docs/decisions/ADR-003-demo-mode.md`.
-
-### Run it locally (Phase 1–10)
+Runs with **zero GCP credentials**:
 
 ```bash
 cp .env.example .env
-docker compose up -d          # postgres + api (migrate + seed happen automatically)
-curl localhost:8000/health    # interactive docs: http://localhost:8000/docs
-
-cd apps/web                   # dashboard (Phase 2)
-npm install
-echo 'NEXT_PUBLIC_API_URL=http://localhost:8000' > .env.local
-npm run dev                   # http://localhost:3000
+docker compose up -d                # postgres + api (migrate + seed automatic)
+cd apps/web && npm ci && npm run dev
+# → http://localhost:3000  (demo dataset: 12 resources, 97 days, ~$170 total)
 ```
 
-Phase 1 API (all mock data, paginated, filterable):
+The API exposes 20+ documented endpoints (`/docs` for OpenAPI). Full list in [`docs/architecture.md`](docs/architecture.md).
 
-```text
-GET /health                      liveness
-GET /ready                       readiness (database check)
-GET /api/cost                    cost records + filtered summary
-GET /api/cost/trend              daily / weekly / monthly buckets
-GET /api/cost/by-service         breakdown with share of total
-GET /api/cost/by-project         breakdown with share of total
-GET /api/cost/by-environment     development / staging / production
-GET /api/resources               resource inventory: filters + pagination,
-                                 monthly cost (trailing 30d) + latest utilization
-GET /api/resources/{id}          detail: cost history + utilization series,
-                                 metadata, ownership, labels
-GET /api/utilization             per-resource metric stats (avg/min/max/P95/
-                                 stddev) + cost over the same window +
-                                 evidence signals (low/high/unstable/missing)
-GET /api/utilization/{id}        one resource: stats + daily series
-GET /api/recommendations         evidence-backed optimization findings
-                                 (filter/sort/paginate) + approval summary
-GET /api/recommendations/{id}    detail: problem, evidence, saving/risk/
-                                 confidence/effort, approval state
-POST /api/recommendations/run    re-run the rules (writes this app's DB only)
-POST /api/recommendations/{id}/approve|reject   human decision
-GET /api/budget                  budgets evaluated against the latest month
-                                 in the data (net MTD, projected run-rate,
-                                 HEALTHY/WARNING/CRITICAL/EXCEEDED)
-POST /api/budget                 create a budget (validated, data-only)
-GET /api/policies                advisory governance policies with findings
-                                 (PASS/WARNING/VIOLATION — no auto-action)
-GET /api/forecast                30-day projection: expected + lower/upper
-                                 bounds + confidence (MA + linear trend)
-GET /api/anomalies               unexpected cost increases vs a 14-day
-                                 rolling baseline (z-score, severity)
-GET /api/freshness               data freshness: FRESH / STALE / UNKNOWN
-                                 with last_updated and data age
-GET /metrics                     Prometheus metrics (§40)
-GET /api/reliability             SLIs vs SLOs (availability 99.5%,
-                                 freshness < 24h, rec success 99%)
-GET /api/alerts                  alert evaluation with runbook links
-```
+**5-minute demo flow:** [Dashboard](http://localhost:3000) → Cost Explorer → Resources → Utilization → Recommendations → Savings → Forecast → AI Advisor. Script: [`docs/portfolio/demo-script.md`](docs/portfolio/demo-script.md).
 
-Phase 2 dashboard:
+## 6. Screenshots
 
-```text
-/                                Overview: current/previous month, MoM (MTD), projected
-                                 run-rate (labelled estimate), daily trend,
-                                 cost by service / project / environment
-/cost                            Cost Explorer: filters (date, service, project,
-                                 environment), granularity switch, breakdown tables,
-                                 paginated cost records
-/resources                       Resource Inventory: filters + UNALLOCATED-only
-                                 toggle, server-side pagination, monthly cost,
-                                 CPU / memory meters, potential saving (Phase 4)
-/resources/{id}                  Resource detail: cost history + utilization charts,
-                                 ownership (UNALLOCATED when missing), metadata,
-                                 labels
-/utilization                     Utilization Analysis: evidence summary, Cost
-                                 vs Utilization chart (cost-in-window vs avg CPU),
-                                 per-resource avg/P95/stddev table — evidence
-                                 only, no automatic recommendations
-/recommendations                 Recommendations: priority-ranked findings with
-                                 evidence and savings math, filter/sort,
-                                 detail view with human Approve/Reject
-/budget                          Budgets: status badges, threshold markers,
-                                 projected month-end (estimate), create form
-/policies                        Governance policies: per-policy status and
-                                 findings — advisory only, never automated
-/forecast                        30-day forecast chart (observed → expected
-                                 with range), trend + confidence cards
-/anomalies                       Cost anomalies: severity filter, min z-score,
-                                 actual vs expected with z-score per finding
-```
+*(captured live from the running demo stack — `docs/screenshots/`)*
 
-Every dashboard section handles loading / error / empty / success states; Recommendations are evidence-backed and require human approval; budget thresholds and policy violations only raise alerts — the platform never modifies infrastructure automatically. Utilization signals are evidence only — no automatic advice (CLAUDE.md §38). Details: [`docs/dashboard.md`](docs/dashboard.md) · Backend setup & testing: [`docs/local-development.md`](docs/local-development.md) · What the numbers mean: [`docs/cost-model.md`](docs/cost-model.md).
+| | |
+| --- | --- |
+| ![Overview](docs/screenshots/01-overview.png) | ![Cost Explorer](docs/screenshots/02-cost-explorer.png) |
+| ![Resources](docs/screenshots/03-resources.png) | ![Utilization](docs/screenshots/04-utilization.png) |
+| ![Recommendations](docs/screenshots/05-recommendations.png) | ![Savings](docs/screenshots/06-savings.png) |
+| ![Forecast](docs/screenshots/07-forecast.png) | ![Budget](docs/screenshots/08-budget.png) |
 
-## 7. Cost safety
+## 7. Cost optimization
 
-**This project must not become an expensive cloud project.** Core rules:
+The recommendation engine (Phase 5) turns measured evidence into prioritized findings — each with savings math, risk, confidence and effort:
 
-- Mock mode is the default; the BigQuery billing and Cloud Monitoring providers are code-complete but dormant until `DEMO_MODE=false` + the export/monitoring are configured (docs/gcp-setup.md, docs/gcp-monitoring.md). Terraform IaC is validated but never applied — `terraform plan` only. CI (GitHub Actions) gates every change: ruff/mypy/pytest, ESLint/tsc/vitest/next build, terraform fmt+validate, Gitleaks, Trivy, and a multi-arch non-root Docker image published to GHCR on main — nothing deploys automatically.
-- No GCP resource is created without stating: purpose, cost, smallest configuration, shutdown and destroy path.
-- `terraform apply` only after a reviewed plan; BigQuery queries are partition-filtered and column-pruned; budget alerts are configured early.
-- Potential savings are labelled *potential*; savings are called *realized* only after verified post-change data.
+- **IdleComputeRule** — avg CPU < 5%, P95 burst guard, minimal network, ≥ 7 days; dev scheduling saves ~60% of window cost.
+- **OversizedComputeRule** — CPU < 20% AND memory < 40% AND stable, one-step-down shape at ~50% cost.
+- **UnusedDiskRule / StorageRetentionRule** — detached disks, near-zero-traffic buckets.
+- **CostAnomalyRule** — daily cost > 1.3× rolling baseline with absolute noise floors; savings = observed excess.
 
-Full policy: [`docs/cost-safety.md`](docs/cost-safety.md).
+**Savings verification (Phase 13):** approve → implement → verify compares actual net cost 30 days before vs after the implementation date. The result can be **negative** and is stored as measured. Simulated estimates are never called realized. Full model: [`docs/savings.md`](docs/savings.md).
 
-## 8. Security
+## 8. FinOps workflow
 
-- Least-privilege, read-only-by-default GCP service accounts (`cost-data-reader`, `monitoring-reader`; a separate `cost-optimizer` only for explicitly bounded actions).
-- No service account keys, credentials, or `.env` files in git — Gitleaks + Trivy in CI (Phase 12–13), Secret Manager / Workload Identity Federation where feasible.
-- AI is read-only and cannot delete resources, modify IAM, or touch Terraform state.
+1. **Visibility** — cost trends, service/project/environment breakdowns, freshness labels (STALE data is never presented as current).
+2. **Allocation** — ownership labels; unattributed cost surfaces as **UNALLOCATED**, never guessed.
+3. **Optimization** — evidence-backed recommendations with a priority score (savings, confidence, risk, effort).
+4. **Governance** — budgets with inclusive warning/critical thresholds; advisory policies (`REQUIRE_OWNER_LABEL`, `MAX_MONTHLY_COST`, `NO_PUBLIC_DATABASE`, …) that report PASS/WARNING/VIOLATION without acting.
+5. **Verification** — the potential→realized loop with before/after windows and an append-only audit trail.
 
-## 9. Repository structure
+## 9. Security
 
-```text
-cloud-cost-lab/
-├── apps/
-│   ├── api/            FastAPI backend — Phase 1 IMPLEMENTED (src/, alembic/, tests/)
-│   └── web/            Next.js dashboard — Phase 2–7 IMPLEMENTED (overview, cost explorer, resources, utilization, recommendations, budget, policies, forecast, anomalies)
-├── analytics/          cost / utilization / recommendations / forecasting modules
-├── data/
-│   └── mock/           committed deterministic dataset + generator scenario source
-├── terraform/          modules + environments (Phase 11)
-├── monitoring/         SLOs, metrics, alert rules (Phase 10)
-├── scripts/            generate_mock_data.py (deterministic dataset generator)
-├── docs/
-│   ├── architecture.md
-│   ├── cost-model.md           Phase 1: data + cost semantics
-│   ├── dashboard.md            Phase 2: pages, components, states, trade-offs
-│   ├── local-development.md    setup, commands, testing
-│   ├── project-roadmap.md
-│   ├── cost-safety.md
-│   └── decisions/      ADR-001 … ADR-005
-├── .github/workflows/  CI/CD (Phase 13)
-├── docker-compose.yml  postgres + api (Phase 1)
-├── .env.example
-├── .gitignore
-├── CLAUDE.md           project rules
-└── README.md
-```
+- **Least privilege** — read-only `cost-data-reader` identity; project IAM limited to `bigquery.jobUser`; dataset/bucket-scoped grants only.
+- **No secrets in git** — env vars + Secret Manager; `.gitignore` blocks key files; Gitleaks scans every push; Trivy scans code and images (HIGH/CRITICAL fail CI).
+- **WIF preferred** over service-account keys for deployment.
+- **Prompt-injection defence** in the AI advisor: questions are untrusted data — sanitized, length-capped, screened for instruction-override markers, and refused.
+- **AI read-only** (§34/ADR-008): the advisor has no tools and no execution path; every action stays behind the human approval lifecycle.
 
-## 10. Roadmap
+## 10. SRE
 
-18 phases, one step at a time — from local mock platform (Phase 1) through GCP integration, forecasting, FinOps score, AI advisor, and portfolio preparation (Phase 18). Current phase status: [`docs/project-roadmap.md`](docs/project-roadmap.md).
+- **Metrics** (`/metrics`): `http_requests_total`, `http_request_duration_seconds`, `billing_records_processed_total`, `billing_data_freshness_seconds`, `recommendations_generated_total`, `forecast_runs_total`, `bigquery_query_duration_seconds`.
+- **SLIs/SLOs** (`/api/reliability`): availability ≥ 99.5% · billing freshness < 24h · recommendation success ≥ 99%.
+- **Alerts** (`/api/alerts` + [`monitoring/prometheus-rules.yml`](monitoring/prometheus-rules.yml)) linked to runbooks.
+- **Incidents** [`docs/incidents/`](docs/incidents/): INC-001…INC-005 with exercised MTTD/MTTR and prevention notes.
+- **Runbook** [`docs/runbook.md`](docs/runbook.md): triage + per-alert procedures.
+- Structured JSON logs with request-id correlation; STALE data is never presented as current.
 
-## 11. Limitations (honest)
+## 11. AI Advisor
 
-- Phase 2 delivers the cost engine and read-only dashboard — no recommendations yet (Phase 4), so Potential Savings is an explicit empty state.
-- All data is synthetic (mock provider). Real GCP integration is Phase 9+.
-- MoM Change compares month-to-date vs prior MTD; Projected Month-End is a linear run-rate estimate — both labelled as such in the UI.
-- Single-cloud (GCP) by design for now; multi-cloud is a future extension via the provider abstraction.
-- Forecasting proper (with ranges) arrives in Phase 6; the dashboard's projection is a simple heuristic.
-- Recommendations are heuristics with evidence and confidence levels — not guarantees.
+`POST /api/ai/advisor` answers six cost questions from the platform's structured context and returns the seven-section contract: **Summary, Evidence, Likely Cause, Recommendation, Potential Savings, Risk, Confidence**.
 
-## 12. Future work
+- Pluggable: deterministic offline advisor by default (reproducible, CI-safe); OpenAI-compatible LLM optional via env key.
+- Says **"Insufficient evidence"** when the context cannot support an answer — never invents facts or savings.
+- Read-only by construction: no tools, no execution path; prompt-injection attempts are refused.
 
-Realized-savings verification loop, unit economics (cost per request/user), what-if cost simulator, policy engine expansion, multi-cloud providers, and richer AI-assisted root-cause analysis — each introduced only in its planned phase.
+Details and safety model: [`docs/ai-advisor.md`](docs/ai-advisor.md).
+
+## 12. Limitations (honest)
+
+- All data is **synthetic** in demo mode. BigQuery/Monitoring providers are code-complete and tested against stubs, but dormant until real GCP data is enabled manually.
+- Terraform is **validated but never applied** — enabling real infrastructure is a documented manual decision.
+- Forecasting is a moving-average + linear-trend blend with residual-based bounds — simple by design, not a production time-series system.
+- Recommendations are project-specific heuristics with evidence — not guarantees, not FinOps-standard benchmarks.
+- The deterministic AI advisor uses keyword intent detection; the optional LLM path returns free-form output labelled "verify before use".
+- Realized savings compare run-rates; causal attribution remains a human judgement.
+- Single-cloud (GCP) by design; multi-cloud would extend the provider abstraction.
+
+## 13. Future roadmap
+
+- Real GCP enablement (billing export + monitoring) and Cloud Asset Inventory enrichment for resource types.
+- Per-team budget/policy overrides; unit economics (cost per request/user); what-if cost simulator.
+- Scheduled rollups so utilization aggregates scale beyond one machine.
+- Structured parsing of LLM output; richer AI root-cause analysis.
+- Multi-cloud providers via the existing abstraction.
+
+---
+
+**Portfolio pack:** [project overview](docs/portfolio/project-overview.md) · [demo script](docs/portfolio/demo-script.md) · [CV description](docs/portfolio/cv-description.md) · [LinkedIn](docs/portfolio/linkedin-description.md) · [interview prep](docs/portfolio/interview-preparation.md)
+
+**License:** MIT · **Author:** Rifky Al Mukmin — 4th-semester informatics student targeting Cloud / DevOps / SRE / FinOps engineering roles.

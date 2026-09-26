@@ -39,13 +39,12 @@ Milestone grouping:
 
 - **Foundation:** 0–1 · **Core product:** 2–12 · **Cloud & hardening:** 13–17 · **FinOps depth & portfolio:** 18–21
 
-## 2. Current phase: PHASE 14 — AI Cloud Cost Advisor (complete)
+## 2. Current phase: PHASE 15 — Portfolio Preparation (complete)
 
-- Pluggable `AIAdvisorProvider`: deterministic `MockAdvisorProvider` (default — offline, reproducible, CI-safe) and an optional OpenAI-compatible `LLMAPIProvider` (`AI_PROVIDER` + `AI_API_KEY` from the environment; stdlib HTTP client; never hardcoded/committed).
-- Structured context builder (`build_advisor_context`): bounded, whitelisted facts — cost, per-resource utilization, recommendations (top by priority), anomalies, forecast, budgets, savings lifecycle, environment/freshness.
-- Six supported questions with keyword intent detection; the seven-section answer contract (Summary/Evidence/Likely Cause/Recommendation/Potential Savings/Risk/Confidence); **"Insufficient evidence"** returned when the context cannot support an answer — never invented.
-- **Safety (§34/ADR-008):** read-only by construction (no tools, no execution path); question sanitization + injection-marker refusal; LLM safety system prompt; no credentials or secrets in the context; every action remains behind the Phase 5/13 approval lifecycle.
-- Endpoints: `POST /api/ai/advisor`, `GET /api/ai/status`. Tests: 16 new (198 total). Docs: [`docs/ai-advisor.md`](ai-advisor.md).
+- README restructured to the 13 portfolio sections (overview, problem, architecture, stack, demo, screenshots, cost optimization, FinOps workflow, security, SRE, AI advisor, limitations, future roadmap) — every claim cross-checked against the implementation.
+- Portfolio pack: [`docs/portfolio/`](portfolio/) with project overview, 5-minute demo script (Dashboard → Cost → Resources/Utilization → Recommendations → Savings → Forecast/Budget → AI Advisor), CV bullets, LinkedIn post (with an anti-exaggeration self-check) and 13 interview Q&As.
+- 8 live screenshots captured from the running stack (`docs/screenshots/`) with a refresh guide; Overview Potential-Savings card now shows the live estimate from the recommendation engine (was a stale placeholder).
+- No core business logic changed — presentation and documentation only.
 
 ## 4. Definition of Done (applies to every phase)
 
