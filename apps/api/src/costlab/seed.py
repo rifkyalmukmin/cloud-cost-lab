@@ -16,6 +16,7 @@ import sys
 from uuid import uuid4
 
 from sqlalchemy import func, select
+from sqlalchemy.orm import Session
 
 from costlab.config import get_settings
 from costlab.db.models import Budget
@@ -29,7 +30,7 @@ from costlab.recommendations.engine import run_engine
 logger = logging.getLogger("costlab.seed")
 
 
-def _ensure_demo_budget(session) -> None:
+def _ensure_demo_budget(session: Session) -> None:
     """Seed one demo budget ($50/month, 70/90 thresholds) when none exists."""
     existing = session.execute(select(func.count()).select_from(Budget)).scalar_one()
     if existing:

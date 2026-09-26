@@ -1,0 +1,111 @@
+name: Docker Build
+
+# Build (and on main, publish to GHCR) the API image.
+# - multi-arch: linux/amd64 + linux/arm64 (the demo machine is Apple Silicon)
+# - the image is pinned/non-root/small — see apps/api/Dockerfile
+# - Trivy scans the image; HIGH/CRITICAL findings fail the run
+# - NO deployment: nothing is deployed to production automatically, ever.
+# - The only credential used is the ephemeral GITHUB_TOKEN for GHCR —
+#   short-lived by design. No GCP credentials are needed or present.
+
+on:
+  pull_request:
+    paths:
+      - "apps/api/**"
+      - "data/mock/**"
+      - ".github/workflows/build.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/api/**"
+      - "data/mock/**"
+      - ".github/workflows/build.yml"
+
+permissions:
+  contents: read
+
+env:
+  IMAGE_NAME: ghcr.io/${{ github.repository }}/api
+
+jobs:
+  docker:
+    name: Build, scan, publish (main only)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write # GHCR push on main only
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute image reference
+        id: ref
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "image_ref=${{ env.IMAGE_NAME }}:pr-${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "image_ref=${{ env.IMAGE_NAME }}:sha-${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up QEMU (arm64 emulation)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: "Log in to GHCR (main only)"
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }} # ephemeral, job-scoped
+
+      - name: Docker metadata (no latest tag, by design)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,format=long
+            type=ref,event=branch
+
+      - name: "Build (PR: amd64 + load for scan)"
+        if: github.event_name == 'pull_request'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          platforms: linux/amd64
+          push: false
+          load: true
+          tags: ${{ steps.ref.outputs.image_ref }}
+
+      - name: "Build multi-arch + publish (main: amd64 + arm64)"
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Verify non-root (uid must not be 0)
+        run: |
+          IMAGE="${{ steps.ref.outputs.image_ref }}"
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            docker pull --platform linux/amd64 "$IMAGE"
+          fi
+          UID_IN_CONTAINER=$(docker run --rm --entrypoint sh "$IMAGE" -c 'id -u')
+          echo "container uid: $UID_IN_CONTAINER"
+          [ "$UID_IN_CONTAINER" != "0" ] || { echo "container runs as root — refusing"; exit 1; }
+
+      - name: Trivy image scan (HIGH/CRITICAL fail the run)
+        uses: aquasecurity/trivy-action@18f2510ee396bbf400402947b394f2dd89787ce2 # v0.29.0
+        with:
+          image-ref: ${{ steps.ref.outputs.image_ref }}
+          format: table
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          ignore-unfixed: true

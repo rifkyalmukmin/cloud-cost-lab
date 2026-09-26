@@ -1,0 +1,143 @@
+name: CI
+
+# Lint, test, type check, build — every push and pull request.
+# Minimal permissions: read-only everywhere in this workflow.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-lint:
+    name: Backend — lint (ruff)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: apps/api/pyproject.toml
+      - name: Install package with dev extras
+        run: pip install -e '.[dev]'
+      - name: Ruff lint
+        run: ruff check .
+      - name: Ruff format check
+        run: ruff format --check .
+
+  backend-typecheck:
+    name: Backend — type check (mypy)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: apps/api/pyproject.toml
+      - name: Install package with dev extras
+        run: pip install -e '.[dev]'
+      - name: Mypy (strict)
+        run: mypy src/costlab
+
+  backend-test:
+    name: Backend — tests (pytest)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: apps/api
+    env:
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: cloud_cost_lab
+      POSTGRES_PASSWORD: cloud_cost_lab_ci
+      POSTGRES_DB: cloud_cost_lab
+    services:
+      postgres:
+        image: postgres:16.4-alpine
+        env:
+          POSTGRES_USER: cloud_cost_lab
+          POSTGRES_PASSWORD: cloud_cost_lab_ci
+          POSTGRES_DB: cloud_cost_lab
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cloud_cost_lab"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: apps/api/pyproject.toml
+      - name: Install package with dev extras
+        run: pip install -e '.[dev]'
+      - name: Run tests (dedicated test database, migrations applied)
+        run: pytest
+
+  web:
+    name: Web — lint, typecheck, test, build
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: apps/web
+    env:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Install dependencies (npm ci)
+        run: npm ci
+      - name: ESLint
+        run: npm run lint
+      - name: TypeScript (tsc --noEmit)
+        run: npm run typecheck
+      - name: Unit tests (vitest)
+        run: npm test
+      - name: Production build
+        run: npm run build
+
+  terraform:
+    name: Terraform — fmt + validate
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+      - name: terraform fmt -check -recursive
+        run: terraform fmt -check -recursive terraform/
+      - name: terraform init + validate (demo)
+        working-directory: terraform/environments/demo
+        run: |
+          terraform init -backend=false -input=false
+          terraform validate
+      - name: terraform init + validate (dev)
+        working-directory: terraform/environments/dev
+        run: |
+          terraform init -backend=false -input=false
+          terraform validate
+      # No plan/apply here: cloud credentials are never used in CI.
+      # A deployment workflow (if ever needed) would use Workload Identity
+      # Federation for short-lived tokens — see docs/gcp-setup.md.

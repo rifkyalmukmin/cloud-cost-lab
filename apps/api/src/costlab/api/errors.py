@@ -7,6 +7,7 @@ Every error — validation, HTTP, or unhandled — is returned as
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
@@ -31,9 +32,9 @@ def _request_id(request: Request) -> str | None:
 
 
 def _error_body(
-    code: str, message: str, request_id: str | None, details: list | None = None
-) -> dict:
-    error: dict = {"code": code, "message": message, "request_id": request_id}
+    code: str, message: str, request_id: str | None, details: list[Any] | None = None
+) -> dict[str, Any]:
+    error: dict[str, Any] = {"code": code, "message": message, "request_id": request_id}
     if details:
         error["details"] = details
     return {"error": error}

@@ -22,6 +22,7 @@ from costlab.analytics import cost as cost_analytics
 from costlab.api.deps import CostFiltersDep, PaginationDep, SessionDep
 from costlab.schemas.common import Environment, Granularity
 from costlab.schemas.cost import (
+    CostFilters,
     CostRecordOut,
     CostRecordsResponse,
     CostSummaryOut,
@@ -46,7 +47,7 @@ def _share_pct(part: float, whole: float) -> float:
     return round(part / whole * 100, 2) if whole else 0.0
 
 
-def _empty_period(filters) -> PeriodOut:
+def _empty_period(filters: CostFilters) -> PeriodOut:
     """Fallback period for an empty database (bounds are unknown)."""
     return PeriodOut(start=filters.start_date or date.min, end=filters.end_date or date.min)
 

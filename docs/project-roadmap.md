@@ -23,34 +23,32 @@
 | 7 | Budget | Budget model, thresholds, projected month-end, budget-risk alerts | ⬜ Pending |
 | 9 | Forecasting | 30-day moving average / linear regression with range | ⬜ Pending |
 | 10 | Anomaly Detection | Rolling average + threshold; z-score later | ⬜ Pending |
-| 11 | Savings Tracking | Potential vs realized savings with verification | ⬜ Pending |
+| 12 | Savings Tracking | Potential vs realized savings with verification | ⬜ Pending |
 | 11 | GCP Integration | Billing Export → BigQuery (cost-protected), real providers | ⬜ Pending |
-| 12 | Monitoring / Freshness | Metrics, structured logs, SLOs, STALE/FRESH labelling | ⬜ Pending |
-| 13 | Terraform | IaC for GCP resources with plan-review + destroy documentation | ⬜ Pending |
-| 14 | Security | Least-privilege IAM, Secret Manager, Gitleaks/Trivy | ⬜ Pending |
-| 15 | CI/CD | GitHub Actions: lint → test → build → security scan → Docker | ⬜ Pending |
-| 16 | FinOps Health Score | Heuristic score: visibility, allocation, optimization, governance, forecasting, automation | ⬜ Pending |
-| 17 | Reports | Daily/weekly/monthly report generation | ⬜ Pending |
-| 18 | AI Advisor | Read-only AI Cloud Cost Advisor with structured context + audit log | ⬜ Pending |
-| 19 | Demo Scenarios | Scripted incidents/scenarios (idle VM, spike, budget risk, …) | ⬜ Pending |
-| 20 | Portfolio Preparation | README polish, screenshots, demo video, CV & interview docs | ⬜ Pending |
+| 13 | Monitoring / Freshness | Metrics, structured logs, SLOs, STALE/FRESH labelling | ⬜ Pending |
+| 14 | Terraform | IaC for GCP resources with plan-review + destroy documentation | ⬜ Pending |
+| 15 | Security | Least-privilege IAM, Secret Manager, Gitleaks/Trivy | ⬜ Pending |
+| 16 | CI/CD | GitHub Actions: lint → test → build → security scan → Docker | ⬜ Pending |
+| 17 | FinOps Health Score | Heuristic score: visibility, allocation, optimization, governance, forecasting, automation | ⬜ Pending |
+| 18 | Reports | Daily/weekly/monthly report generation | ⬜ Pending |
+| 19 | AI Advisor | Read-only AI Cloud Cost Advisor with structured context + audit log | ⬜ Pending |
+| 20 | Demo Scenarios | Scripted incidents/scenarios (idle VM, spike, budget risk, …) | ⬜ Pending |
+| 21 | Portfolio Preparation | README polish, screenshots, demo video, CV & interview docs | ⬜ Pending |
 
 Milestone grouping:
 
-- **Foundation:** 0–1 · **Core product:** 2–12 · **Cloud & hardening:** 13–16 · **FinOps depth & portfolio:** 17–20
+- **Foundation:** 0–1 · **Core product:** 2–12 · **Cloud & hardening:** 13–17 · **FinOps depth & portfolio:** 18–21
 
-## 2. Current phase: PHASE 9 — GCP Monitoring Integration (complete, dormant)
+## 2. Current phase: PHASE 11 — CI/CD (complete)
 
-> Safety: code + tests only — no GCP resource created; activation is the documented manual step in [`docs/gcp-setup.md`](gcp-setup.md).
-
-- `MonitoringDataProvider` interface with `MockMonitoringProvider` (demo dataset unchanged) and `GCPMonitoringProvider` (Cloud Monitoring via injected runner; ADC/WIF, optional `gcp` extra; real mode without monitoring config falls back to `EmptyMonitoringProvider`).
-- Metrics collected: CPU (0-1 → %), memory/disk (Ops Agent), network in/out (bytes → MB), **connections** (new `resource_usage.connections` column, migration 0004) and request counts; missing series ⇒ null (never 0), zero metrics kept, **stale series (newest sample > `GCP_MONITORING_MAX_AGE_DAYS`) dropped** instead of ingested as current; bounded 30-day window; metric failure aborts the load (`GCPMonitoringError`).
-- Recommendations strengthened with performance evidence: `IdleComputeRule` now corroborates with request counts (avg > 10/day ⇒ never idle) and open connections (avg > 2 ⇒ never idle), each added as evidence lines — cost alone ($30/month, no monitoring) produces nothing (unit-tested).
-- Tests: 15 new (163 total). Docs: [`docs/gcp-monitoring.md`](gcp-monitoring.md), [`docs/utilization-analysis.md`](utilization-analysis.md) (renamed from resource-analysis.md).
+- `.github/workflows/ci.yml` — backend: ruff lint + format check, **mypy strict** (baseline driven to zero this phase), pytest against a Postgres 16.4 service container; web: ESLint, tsc, vitest, Next production build; terraform fmt -check + validate for both environments. All actions pinned by version, `permissions: contents: read`, concurrency-cancelling.
+- `.github/workflows/security.yml` — **Gitleaks** secret scanning (full history) and **Trivy** filesystem scan (vuln + secret + IaC misconfig; HIGH/CRITICAL fail the run), plus a weekly scheduled rescan.
+- `.github/workflows/build.yml` — Docker image build via buildx: **linux/amd64 + linux/arm64** (QEMU), published to GHCR on main only with the ephemeral `GITHUB_TOKEN` (short-lived, job-scoped — no GCP credentials in CI); Trivy image scan gate (HIGH/CRITICAL fail); a non-root runtime check (`id -u` ≠ 0, uid 10001); no `latest` tag, tags by SHA/branch; **no automatic deployment**.
+- Local verification: `actionlint` clean on all three workflows; image built locally (325 MB, non-root verified).
 
 ## 3. Next phase: not started
 
-Candidates per the user's sequencing: savings tracking, Terraform, or security hardening. **Do not start until explicitly instructed.**
+Candidates per the user's sequencing: FinOps health score, reports, AI advisor, or portfolio preparation. **Do not start until explicitly instructed.**
 
 ## 4. Definition of Done (applies to every phase)
 

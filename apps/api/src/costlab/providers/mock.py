@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 from pydantic import TypeAdapter
 
@@ -29,7 +30,7 @@ _cost_list = TypeAdapter(list[CostRecordInput])
 _usage_list = TypeAdapter(list[UsageRecordInput])
 
 
-def _read_json(path: Path) -> list[dict]:
+def _read_json(path: Path) -> list[dict[str, Any]]:
     if not path.is_file():
         raise FileNotFoundError(
             f"Mock data file not found: {path}. Generate it with "

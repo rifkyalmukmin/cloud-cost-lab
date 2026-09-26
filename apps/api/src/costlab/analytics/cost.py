@@ -12,7 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
-from typing import Literal
+from typing import Any, Literal
 
 from sqlalchemy import DateTime, Select, cast, func, select
 from sqlalchemy.orm import Session
@@ -69,14 +69,14 @@ class CostRecordRow:
     credits: float
     net_cost: float
     currency: str
-    labels: dict
+    labels: dict[str, Any]
 
 
 def _money(value: Decimal | int | float | None) -> float:
     return round(float(value or 0), 4)
 
 
-def apply_filters(stmt: Select, filters: CostFilters) -> Select:
+def apply_filters(stmt: Select[Any], filters: CostFilters) -> Select[Any]:
     if filters.start_date is not None:
         stmt = stmt.where(CostRecord.usage_date >= filters.start_date)
     if filters.end_date is not None:

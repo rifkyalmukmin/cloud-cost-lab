@@ -1,0 +1,55 @@
+name: Security
+
+# DevSecops gates: secret scanning (Gitleaks) and vulnerability /
+# misconfiguration scanning (Trivy). Read-only permissions; both jobs fail
+# the run on findings — findings block merges, they are never auto-remediated.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    # Weekly rescan: new CVEs land against unchanged code.
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  gitleaks:
+    name: Secrets — Gitleaks
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history so gitleaks can scan commits on push
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # short-lived, read-scoped
+
+  trivy-fs:
+    name: Vulnerabilities & IaC — Trivy (filesystem)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trivy filesystem scan (vuln + secret + misconfig)
+        uses: aquasecurity/trivy-action@18f2510ee396bbf400402947b394f2dd89787ce2 # v0.29.0
+        with:
+          scan-type: fs
+          scanners: vuln,secret,misconfig
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          ignore-unfixed: true
+      - name: Trivy filesystem report (all severities, informational)
+        uses: aquasecurity/trivy-action@18f2510ee396bbf400402947b394f2dd89787ce2 # v0.29.0
+        with:
+          scan-type: fs
+          scanners: vuln
+          severity: MEDIUM,LOW
+          exit-code: "0"
+          format: table
