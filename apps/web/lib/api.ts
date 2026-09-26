@@ -166,6 +166,7 @@ async function request<T>(
   filters: CostFilters = {},
   extraParams: Record<string, string> = {},
   method: "GET" | "POST" = "GET",
+  jsonBody?: unknown,
 ): Promise<T> {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(buildFilterParams(filters))) {
@@ -179,7 +180,11 @@ async function request<T>(
   try {
     response = await fetch(`${apiBaseUrl()}${path}${query}`, {
       method,
-      headers: { Accept: "application/json" },
+      headers: jsonBody === undefined ? { Accept: "application/json" } : {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: jsonBody === undefined ? undefined : JSON.stringify(jsonBody),
       cache: "no-store",
     });
   } catch {
@@ -246,6 +251,10 @@ export const api = {
       {},
       "POST",
     ),
+  listBudgets: () => request<BudgetListResponse>("/api/budget"),
+  createBudget: (payload: BudgetCreate) =>
+    request<BudgetOut>("/api/budget", {}, {}, "POST", payload),
+  listPolicies: () => request<PolicyListResponse>("/api/policies"),
 };
 
 // ---------------------------------------------------------------------------
@@ -521,4 +530,93 @@ function buildRecommendationParams(filters: RecommendationFilters): Record<strin
   if (filters.page) params["page"] = String(filters.page);
   if (filters.pageSize) params["page_size"] = String(filters.pageSize);
   return params;
+}
+
+// ---------------------------------------------------------------------------
+// Budget & governance (Phase 6)
+// ---------------------------------------------------------------------------
+
+export type BudgetStatus = "HEALTHY" | "WARNING" | "CRITICAL" | "EXCEEDED";
+export type PolicyStatus = "PASS" | "WARNING" | "VIOLATION";
+
+export interface SpendPeriod {
+  start: string;
+  end: string;
+  days_elapsed: number;
+  days_in_month: number;
+}
+
+export interface SpendOut {
+  amount: number;
+  gross_amount: number;
+  daily_average: number;
+  period: SpendPeriod;
+}
+
+export interface BudgetOut {
+  id: string;
+  name: string;
+  scope_type: "all" | "project" | "service" | "environment";
+  scope_value: string | null;
+  period: string;
+  limit: number;
+  warning_threshold: number;
+  critical_threshold: number;
+  status: BudgetStatus | null;
+  spend: SpendOut | null;
+  remaining: number | null;
+  spend_percentage: number | null;
+  projected_month_end: number | null;
+  forecast_over_budget: boolean | null;
+}
+
+export interface BudgetSummary {
+  evaluation_month: string | null;
+  data_end: string | null;
+  budget_count: number;
+  by_status: Record<BudgetStatus, number>;
+  forecast_over_budget_count: number;
+}
+
+export interface BudgetListResponse {
+  summary: BudgetSummary;
+  budgets: BudgetOut[];
+}
+
+export interface BudgetCreate {
+  name: string;
+  scope_type: "all" | "project" | "service" | "environment";
+  scope_value?: string | null;
+  period?: "monthly";
+  limit: number;
+  warning_threshold: number;
+  critical_threshold: number;
+}
+
+export interface PolicyFinding {
+  resource_id: string | null;
+  resource_name: string;
+  detail: string;
+}
+
+export interface PolicyOut {
+  policy_id: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+  config: Record<string, string | number>;
+  status: PolicyStatus;
+  summary: string;
+  findings: PolicyFinding[];
+}
+
+export interface PolicySummary {
+  policy_count: number;
+  by_status: Record<PolicyStatus, number>;
+  finding_count: number;
+}
+
+export interface PolicyListResponse {
+  summary: PolicySummary;
+  policies: PolicyOut[];
 }

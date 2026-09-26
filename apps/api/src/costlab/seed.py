@@ -13,15 +13,40 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+from uuid import uuid4
+
+from sqlalchemy import func, select
 
 from costlab.config import get_settings
+from costlab.db.models import Budget
 from costlab.db.session import SessionLocal
+from costlab.governance import ensure_default_policies
 from costlab.ingestion.loader import cost_record_count, ingest_snapshot
 from costlab.logging_config import setup_logging
 from costlab.providers import build_providers
 from costlab.recommendations.engine import run_engine
 
 logger = logging.getLogger("costlab.seed")
+
+
+def _ensure_demo_budget(session) -> None:
+    """Seed one demo budget ($50/month, 70/90 thresholds) when none exists."""
+    existing = session.execute(select(func.count()).select_from(Budget)).scalar_one()
+    if existing:
+        return
+    session.add(
+        Budget(
+            id=uuid4().hex,
+            name="Lab monthly budget",
+            scope_type="all",
+            scope_value=None,
+            period="monthly",
+            limit_amount=50,
+            warning_threshold=70,
+            critical_threshold=90,
+        )
+    )
+    session.flush()
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -47,8 +72,14 @@ def main(argv: list[str] | None = None) -> int:
     with SessionLocal() as session:
         existing = cost_record_count(session)
         if existing > 0 and not args.force:
+            # Fact rows are already present, but definitions/config are still
+            # ensured (idempotent) so upgrades fill in new Phase 6 rows.
+            ensure_default_policies(session)
+            _ensure_demo_budget(session)
+            session.commit()
             logger.info(
-                "database already contains demo data; nothing to do (use --force to replace)",
+                "database already contains demo data; ensured policies/budget "
+                "(use --force to replace facts)",
                 extra={"details": {"existing_cost_records": existing}},
             )
             return 0
@@ -57,6 +88,8 @@ def main(argv: list[str] | None = None) -> int:
         # Recommendation mode only: writes recommendation rows to THIS database,
         # never touches cloud infrastructure (CLAUDE.md §38).
         run_engine(session)
+        ensure_default_policies(session)
+        _ensure_demo_budget(session)
         session.commit()
 
     logger.info(

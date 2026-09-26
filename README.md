@@ -4,7 +4,7 @@
 
 Cloud Cost Lab aggregates cloud cost and resource utilization data, detects waste and optimization opportunities, estimates **potential** savings, monitors budgets, forecasts future cost with explicit uncertainty, and produces evidence-based recommendations that require **human approval** before any impactful action.
 
-**Current status: PHASE 5 — Recommendation Engine complete.** Five evidence-backed rules (idle, oversized, unused disk, storage retention, cost anomaly) with a priority model and a human-approval lifecycle (`/recommendations`) on top of the utilization analysis, resource inventory, dashboard and mock cost engine (`DEMO_MODE=true`). See [`docs/project-roadmap.md`](docs/project-roadmap.md).
+**Current status: PHASE 6 — Budget & Governance complete.** Monthly budgets with inclusive warning/critical thresholds and five advisory governance policies (PASS/WARNING/VIOLATION — never automated actions) on top of the recommendation engine, utilization analysis, resource inventory and dashboard (`DEMO_MODE=true`). See [`docs/project-roadmap.md`](docs/project-roadmap.md).
 
 ---
 
@@ -74,7 +74,7 @@ DEMO_MODE=true   →   synthetic billing + utilization data (data/mock/)
 
 Mock and real data sources implement the same `BillingDataProvider` interface, so the dashboard and recommendation engine behave identically in both modes. See `docs/decisions/ADR-003-demo-mode.md`.
 
-### Run it locally (Phase 1–5)
+### Run it locally (Phase 1–6)
 
 ```bash
 cp .env.example .env
@@ -111,6 +111,12 @@ GET /api/recommendations/{id}    detail: problem, evidence, saving/risk/
                                  confidence/effort, approval state
 POST /api/recommendations/run    re-run the rules (writes this app's DB only)
 POST /api/recommendations/{id}/approve|reject   human decision
+GET /api/budget                  budgets evaluated against the latest month
+                                 in the data (net MTD, projected run-rate,
+                                 HEALTHY/WARNING/CRITICAL/EXCEEDED)
+POST /api/budget                 create a budget (validated, data-only)
+GET /api/policies                advisory governance policies with findings
+                                 (PASS/WARNING/VIOLATION — no auto-action)
 ```
 
 Phase 2 dashboard:
@@ -135,9 +141,13 @@ Phase 2 dashboard:
 /recommendations                 Recommendations: priority-ranked findings with
                                  evidence and savings math, filter/sort,
                                  detail view with human Approve/Reject
+/budget                          Budgets: status badges, threshold markers,
+                                 projected month-end (estimate), create form
+/policies                        Governance policies: per-policy status and
+                                 findings — advisory only, never automated
 ```
 
-Every dashboard section handles loading / error / empty / success states; Recommendations are evidence-backed and require human approval; the platform never modifies infrastructure automatically. Utilization signals are evidence only — no automatic advice (CLAUDE.md §38). Details: [`docs/dashboard.md`](docs/dashboard.md) · Backend setup & testing: [`docs/local-development.md`](docs/local-development.md) · What the numbers mean: [`docs/cost-model.md`](docs/cost-model.md).
+Every dashboard section handles loading / error / empty / success states; Recommendations are evidence-backed and require human approval; budget thresholds and policy violations only raise alerts — the platform never modifies infrastructure automatically. Utilization signals are evidence only — no automatic advice (CLAUDE.md §38). Details: [`docs/dashboard.md`](docs/dashboard.md) · Backend setup & testing: [`docs/local-development.md`](docs/local-development.md) · What the numbers mean: [`docs/cost-model.md`](docs/cost-model.md).
 
 ## 7. Cost safety
 
@@ -162,7 +172,7 @@ Full policy: [`docs/cost-safety.md`](docs/cost-safety.md).
 cloud-cost-lab/
 ├── apps/
 │   ├── api/            FastAPI backend — Phase 1 IMPLEMENTED (src/, alembic/, tests/)
-│   └── web/            Next.js dashboard — Phase 2–5 IMPLEMENTED (overview, cost explorer, resources, utilization, recommendations)
+│   └── web/            Next.js dashboard — Phase 2–6 IMPLEMENTED (overview, cost explorer, resources, utilization, recommendations, budget, policies)
 ├── analytics/          cost / utilization / recommendations / forecasting modules
 ├── data/
 │   └── mock/           committed deterministic dataset + generator scenario source
