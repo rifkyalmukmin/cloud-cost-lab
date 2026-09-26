@@ -1,0 +1,74 @@
+# Prometheus alert rules for Cloud Cost Lab (Phase 12).
+# Mirror of the in-process alert evaluation in
+# apps/api/src/costlab/analytics/observability.py::evaluate_alerts —
+# for real deployments scraping /metrics with a Prometheus server.
+#
+# SLIs/SLOs (CLAUDE.md §43):
+#   API availability       >= 99.5%  (30d window)
+#   Billing data freshness <  24h
+#   Recommendation success >= 99%    (30d window)
+
+groups:
+  - name: cloud-cost-lab-slo
+    rules:
+      # --- SLI recording rules ------------------------------------------
+      - record: job:api_availability:ratio_rate5m
+        expr: |
+          1 - (
+            sum(rate(http_requests_total{status=~"5.."}[5m]))
+            /
+            sum(rate(http_requests_total[5m]))
+          )
+      - record: job:recommendation_success:ratio_rate30d
+        expr: |
+          sum(recommendation_runs_total{result="success"})
+          /
+          sum(recommendation_runs_total)
+
+      # --- Alerts ---------------------------------------------------------
+      - alert: BillingDataStale
+        expr: billing_data_freshness_seconds > 86400
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Billing data is more than 24h old"
+          description: "Newest billing data day is {{ $value | humanizeDuration }} old (SLO < 24h)."
+          runbook: "docs/runbook.md#inc-001-billing-stale"
+
+      - alert: BillingDataMissing
+        expr: absent(billing_data_freshness_seconds)
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: "No billing data at all"
+          runbook: "docs/runbook.md#inc-001-billing-stale"
+
+      - alert: APIAvailabilityLow
+        expr: job:api_availability:ratio_rate5m < 0.995
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API availability below the 99.5% SLO"
+          description: "5m availability is {{ $value | humanizePercentage }}."
+          runbook: "docs/runbook.md#inc-003-api-outage"
+
+      - alert: RecommendationPipelineFailing
+        expr: job:recommendation_success:ratio_rate30d < 0.99
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Recommendation pipeline success below the 99% SLO"
+          runbook: "docs/runbook.md#inc-004-recommendation-failure"
+
+      - alert: BigQueryQuerySlowOrFailing
+        expr: rate(bigquery_query_duration_seconds_count[30m]) == 0 and on() billing_data_freshness_seconds > 86400
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "No BigQuery queries completing while billing data is stale"
+          runbook: "docs/runbook.md#inc-002-bigquery-failure"

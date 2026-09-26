@@ -21,10 +21,12 @@ files. Failures surface as `GCPBillingError` with actionable messages.
 from __future__ import annotations
 
 import logging
+import time
 from collections.abc import Callable
 from datetime import UTC, date, datetime, timedelta
 from typing import Any, cast
 
+from costlab.analytics.observability import bigquery_query_duration_seconds
 from costlab.providers.base import BillingDataProvider
 from costlab.schemas.common import Environment
 from costlab.schemas.input import (
@@ -206,7 +208,9 @@ class GCPBillingProvider(BillingDataProvider):
                 extra={"operation": "bq_dry_run"},
             )
             job_config = configs.with_parameters(parameters)
+            started = time.perf_counter()
             result = client.query(sql, job_config=job_config).result()
+            bigquery_query_duration_seconds.observe(time.perf_counter() - started)
         except GCPBillingError:
             raise
         except Exception as exc:

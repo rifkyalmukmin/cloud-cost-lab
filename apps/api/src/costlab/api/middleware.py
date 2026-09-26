@@ -9,6 +9,7 @@ import uuid
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
+from costlab.analytics.observability import observe_request
 from costlab.logging_config import request_id_var
 
 logger = logging.getLogger("costlab.request")
@@ -34,6 +35,11 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         finally:
             request_id_var.reset(token)
         duration_ms = round((time.perf_counter() - started) * 1000, 2)
+        # Prometheus instrumentation; /metrics itself is excluded (self-noise).
+        if request.url.path != "/metrics":
+            route = request.scope.get("route")
+            path_label = getattr(route, "path", "unmatched")
+            observe_request(request.method, path_label, response.status_code, duration_ms / 1000)
         response.headers[REQUEST_ID_HEADER] = request_id
         logger.info(
             "request handled",

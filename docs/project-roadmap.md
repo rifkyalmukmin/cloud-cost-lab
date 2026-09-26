@@ -23,32 +23,30 @@
 | 7 | Budget | Budget model, thresholds, projected month-end, budget-risk alerts | ⬜ Pending |
 | 9 | Forecasting | 30-day moving average / linear regression with range | ⬜ Pending |
 | 10 | Anomaly Detection | Rolling average + threshold; z-score later | ⬜ Pending |
-| 12 | Savings Tracking | Potential vs realized savings with verification | ⬜ Pending |
+| 13 | Savings Tracking | Potential vs realized savings with verification | ⬜ Pending |
 | 11 | GCP Integration | Billing Export → BigQuery (cost-protected), real providers | ⬜ Pending |
-| 13 | Monitoring / Freshness | Metrics, structured logs, SLOs, STALE/FRESH labelling | ⬜ Pending |
-| 14 | Terraform | IaC for GCP resources with plan-review + destroy documentation | ⬜ Pending |
-| 15 | Security | Least-privilege IAM, Secret Manager, Gitleaks/Trivy | ⬜ Pending |
-| 16 | CI/CD | GitHub Actions: lint → test → build → security scan → Docker | ⬜ Pending |
-| 17 | FinOps Health Score | Heuristic score: visibility, allocation, optimization, governance, forecasting, automation | ⬜ Pending |
-| 18 | Reports | Daily/weekly/monthly report generation | ⬜ Pending |
-| 19 | AI Advisor | Read-only AI Cloud Cost Advisor with structured context + audit log | ⬜ Pending |
-| 20 | Demo Scenarios | Scripted incidents/scenarios (idle VM, spike, budget risk, …) | ⬜ Pending |
-| 21 | Portfolio Preparation | README polish, screenshots, demo video, CV & interview docs | ⬜ Pending |
+| 14 | Monitoring / Freshness | Metrics, structured logs, SLOs, STALE/FRESH labelling | ⬜ Pending |
+| 15 | Terraform | IaC for GCP resources with plan-review + destroy documentation | ⬜ Pending |
+| 16 | Security | Least-privilege IAM, Secret Manager, Gitleaks/Trivy | ⬜ Pending |
+| 17 | CI/CD | GitHub Actions: lint → test → build → security scan → Docker | ⬜ Pending |
+| 18 | FinOps Health Score | Heuristic score: visibility, allocation, optimization, governance, forecasting, automation | ⬜ Pending |
+| 19 | Reports | Daily/weekly/monthly report generation | ⬜ Pending |
+| 20 | AI Advisor | Read-only AI Cloud Cost Advisor with structured context + audit log | ⬜ Pending |
+| 21 | Demo Scenarios | Scripted incidents/scenarios (idle VM, spike, budget risk, …) | ⬜ Pending |
+| 22 | Portfolio Preparation | README polish, screenshots, demo video, CV & interview docs | ⬜ Pending |
 
 Milestone grouping:
 
 - **Foundation:** 0–1 · **Core product:** 2–12 · **Cloud & hardening:** 13–17 · **FinOps depth & portfolio:** 18–21
 
-## 2. Current phase: PHASE 11 — CI/CD (complete)
+## 2. Current phase: PHASE 12 — Observability & SRE (complete)
 
-- `.github/workflows/ci.yml` — backend: ruff lint + format check, **mypy strict** (baseline driven to zero this phase), pytest against a Postgres 16.4 service container; web: ESLint, tsc, vitest, Next production build; terraform fmt -check + validate for both environments. All actions pinned by version, `permissions: contents: read`, concurrency-cancelling.
-- `.github/workflows/security.yml` — **Gitleaks** secret scanning (full history) and **Trivy** filesystem scan (vuln + secret + IaC misconfig; HIGH/CRITICAL fail the run), plus a weekly scheduled rescan.
-- `.github/workflows/build.yml` — Docker image build via buildx: **linux/amd64 + linux/arm64** (QEMU), published to GHCR on main only with the ephemeral `GITHUB_TOKEN` (short-lived, job-scoped — no GCP credentials in CI); Trivy image scan gate (HIGH/CRITICAL fail); a non-root runtime check (`id -u` ≠ 0, uid 10001); no `latest` tag, tags by SHA/branch; **no automatic deployment**.
-- Local verification: `actionlint` clean on all three workflows; image built locally (325 MB, non-root verified).
-
-## 3. Next phase: not started
-
-Candidates per the user's sequencing: FinOps health score, reports, AI advisor, or portfolio preparation. **Do not start until explicitly instructed.**
+- **Metrics (§40, all exposed on `/metrics`):** `http_requests_total`, `http_request_duration_seconds` (request middleware, route-templated labels), `billing_records_processed_total` (ingestion), `billing_data_freshness_seconds` (gauge, set on ingest), `recommendations_generated_total` + `recommendation_runs_total{result}` (engine), `forecast_runs_total{result}` (forecast), `bigquery_query_duration_seconds` (billing provider).
+- **Structured JSON logs** — one JSON line per request with request id, method, path, status, duration; correlation via request-id context var.
+- **SLIs/SLOs (§43):** `GET /api/reliability` compares availability (≥ 99.5%), billing freshness (< 24h) and recommendation success (≥ 99%) against targets with met/not-met — the demo dataset honestly fails the freshness SLO.
+- **Alerting:** `GET /api/alerts` evaluates in-process alerts (BillingDataStale/Missing, APIAvailabilityLow, RecommendationPipelineFailing) linked to runbooks; `monitoring/prometheus-rules.yml` mirrors them as Prometheus rules for real deployments.
+- **Incidents + runbooks:** `docs/incidents/INC-001..005` (billing stale, BigQuery failure, API outage, recommendation failure, forecast failure) with exercised MTTD/MTTR; `docs/runbook.md` triage + per-alert procedures.
+- Tests: 11 new (174 total) covering metric exposition, counter increments, SLI/SLO contract, stale-alert firing. README status/roadmap refreshed (README content restored after a Phase 10 script overwrite).
 
 ## 4. Definition of Done (applies to every phase)
 

@@ -4,7 +4,7 @@
 
 Cloud Cost Lab aggregates cloud cost and resource utilization data, detects waste and optimization opportunities, estimates **potential** savings, monitors budgets, forecasts future cost with explicit uncertainty, and produces evidence-based recommendations that require **human approval** before any impactful action.
 
-**Current status: PHASE 11 — CI/CD complete (GitHub Actions: CI, security, Docker build).** Secure GitHub Actions pipelines (lint/test/typecheck/build + Gitleaks/Trivy + multi-arch Docker image to GHCR, non-root, never auto-deployed) on top of the GCP infrastructure as code — BigQuery billing and Cloud Monitoring providers dormant until real data is enabled (docs/gcp-setup.md, docs/gcp-monitoring.md). See [`docs/project-roadmap.md`](docs/project-roadmap.md).
+**Current status: PHASE 12 — Observability & SRE complete (Prometheus metrics, SLIs/SLOs, alerting, incidents & runbooks).** Secure GitHub Actions pipelines (lint/test/typecheck/build + Gitleaks/Trivy + multi-arch Docker image to GHCR, non-root, never auto-deployed) on top of the GCP infrastructure as code — Prometheus `/metrics`, SLIs vs SLOs (`/api/reliability`), alerting (`/api/alerts` + `monitoring/prometheus-rules.yml`), structured JSON logs and incident runbooks. BigQuery billing and Cloud Monitoring providers remain dormant until real data is enabled (docs/gcp-setup.md, docs/gcp-monitoring.md). See [`docs/project-roadmap.md`](docs/project-roadmap.md).
 
 ---
 
@@ -123,6 +123,10 @@ GET /api/anomalies               unexpected cost increases vs a 14-day
                                  rolling baseline (z-score, severity)
 GET /api/freshness               data freshness: FRESH / STALE / UNKNOWN
                                  with last_updated and data age
+GET /metrics                     Prometheus metrics (§40)
+GET /api/reliability             SLIs vs SLOs (availability 99.5%,
+                                 freshness < 24h, rec success 99%)
+GET /api/alerts                  alert evaluation with runbook links
 ```
 
 Phase 2 dashboard:

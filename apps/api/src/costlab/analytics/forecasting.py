@@ -26,6 +26,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from costlab.analytics.cost import _money, get_bounds
+from costlab.analytics.observability import forecast_runs_total
 from costlab.db.models import CostRecord
 from costlab.schemas.cost import CostFilters
 
@@ -112,9 +113,11 @@ def _trend_direction(slope: float, mean_daily: float) -> str:
 def build_forecast(
     session: Session, filters: CostFilters, horizon_days: int = 30
 ) -> dict[str, Any]:
+    forecast_runs_total.labels(result="success").inc()
     series = _daily_series(session, filters)
     n = len(series)
     if n < MIN_HISTORY_DAYS:
+        forecast_runs_total.labels(result="insufficient_data").inc()
         return {
             "sufficient_data": False,
             "message": (

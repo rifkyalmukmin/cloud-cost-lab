@@ -1,4 +1,4 @@
-"""Health, readiness and data-freshness endpoints."""
+"""Health, readiness, metrics, freshness and reliability endpoints."""
 
 from __future__ import annotations
 
@@ -6,11 +6,16 @@ import logging
 from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 from sqlalchemy import func, select
 from sqlalchemy import text as sql_text
 
 from costlab.analytics.freshness import compute_freshness
+from costlab.analytics.observability import (
+    compute_reliability,
+    evaluate_alerts,
+    render_metrics,
+)
 from costlab.api.deps import SessionDep
 from costlab.config import get_settings
 from costlab.db.models import CostRecord
@@ -55,3 +60,40 @@ def freshness(session: SessionDep) -> dict[str, Any]:
         max_age_hours=settings.freshness_max_hours,
     )
     return result.as_dict()
+
+
+@router.get("/metrics")
+def metrics() -> Response:
+    """Prometheus exposition of all platform metrics (CLAUDE.md §40)."""
+    payload, content_type = render_metrics()
+    return Response(content=payload, media_type=content_type)
+
+
+@router.get("/api/reliability")
+def reliability(session: SessionDep) -> dict[str, Any]:
+    """SLIs vs SLO targets (CLAUDE.md §43): API availability >= 99.5%,
+    billing data freshness < 24h, recommendation success >= 99%."""
+    settings = get_settings()
+    newest_data_date = session.execute(select(func.max(CostRecord.usage_date))).scalar_one()
+    fresh = compute_freshness(
+        newest_data_date,
+        now=datetime.now(UTC),
+        max_age_hours=settings.freshness_max_hours,
+    )
+    return compute_reliability(session, fresh.as_dict())
+
+
+@router.get("/api/alerts")
+def alerts(session: SessionDep) -> dict[str, Any]:
+    """Basic alert evaluation (mirrored in monitoring/prometheus-rules.yml
+    for real Prometheus deployments). Advisory: fires runbook-linked alerts."""
+    settings = get_settings()
+    newest_data_date = session.execute(select(func.max(CostRecord.usage_date))).scalar_one()
+    fresh = compute_freshness(
+        newest_data_date,
+        now=datetime.now(UTC),
+        max_age_hours=settings.freshness_max_hours,
+    )
+    alert_list = evaluate_alerts(fresh.as_dict())
+    firing = sum(1 for alert in alert_list if alert["state"] == "firing")
+    return {"summary": {"total": len(alert_list), "firing": firing}, "alerts": alert_list}

@@ -9,10 +9,15 @@ resources) are upserted. The caller decides when replacement is allowed —
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
+from costlab.analytics.observability import (
+    billing_records_processed_total,
+    set_freshness_gauge,
+)
 from costlab.db.models import CostRecord, Project, Resource, ResourceUsage, Service
 from costlab.schemas.input import BillingSnapshot, UsageRecordInput
 
@@ -157,6 +162,19 @@ def ingest_snapshot(
         )
         for row in usage_records
     )
+    # Observability: processed-records counter + freshness gauge (§40/§41).
+    if snapshot.cost_records:
+        newest = max(row.usage_date for row in snapshot.cost_records)
+        age = max(
+            0.0,
+            (
+                datetime.now(UTC)
+                - datetime.combine(newest + timedelta(days=1), datetime.min.time(), tzinfo=UTC)
+            ).total_seconds(),
+        )
+        set_freshness_gauge(age)
+    billing_records_processed_total.labels(result="ingested").inc(len(snapshot.cost_records))
+
     return IngestResult(
         source=snapshot.source,
         services=len(snapshot.services),

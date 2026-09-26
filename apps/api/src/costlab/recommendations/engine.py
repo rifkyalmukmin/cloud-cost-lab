@@ -15,6 +15,10 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from costlab.analytics import utilization as utilization_analytics
+from costlab.analytics.observability import (
+    recommendation_runs_total,
+    recommendations_generated_total,
+)
 from costlab.db.models import Recommendation
 from costlab.recommendations.base import RecommendationDraft, RecommendationRule
 from costlab.recommendations.rules import (
@@ -117,6 +121,17 @@ def _collect_drafts(session: Session, context: EngineContext) -> list[Recommenda
 
 def run_engine(session: Session) -> dict[str, int]:
     """Run every rule and persist the result. Returns run statistics."""
+    try:
+        stats = _run_engine(session)
+    except Exception:
+        recommendation_runs_total.labels(result="failure").inc()
+        raise
+    recommendation_runs_total.labels(result="success").inc()
+    recommendations_generated_total.inc(stats["generated"])
+    return stats
+
+
+def _run_engine(session: Session) -> dict[str, int]:
     context = EngineContext(session)
     drafts = _collect_drafts(session, context)
 
