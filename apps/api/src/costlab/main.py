@@ -9,6 +9,7 @@ from costlab import __version__
 from costlab.api.errors import install_error_handlers
 from costlab.api.middleware import RequestContextMiddleware
 from costlab.api.routes_cost import router as cost_router
+from costlab.api.routes_forecast import router_anomalies, router_forecast
 from costlab.api.routes_governance import router_budget, router_policies
 from costlab.api.routes_health import router as health_router
 from costlab.api.routes_recommendations import router as recommendations_router
@@ -49,6 +50,8 @@ def create_app() -> FastAPI:
     app.include_router(recommendations_router)
     app.include_router(router_budget)
     app.include_router(router_policies)
+    app.include_router(router_forecast)
+    app.include_router(router_anomalies)
     return app
 
 

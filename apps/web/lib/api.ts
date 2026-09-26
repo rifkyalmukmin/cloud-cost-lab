@@ -255,6 +255,10 @@ export const api = {
   createBudget: (payload: BudgetCreate) =>
     request<BudgetOut>("/api/budget", {}, {}, "POST", payload),
   listPolicies: () => request<PolicyListResponse>("/api/policies"),
+  getForecast: (filters: ForecastFilters = {}) =>
+    request<ForecastResponse>("/api/forecast", {}, buildForecastParams(filters)),
+  listAnomalies: (filters: AnomalyFilters = {}) =>
+    request<AnomalyListResponse>("/api/anomalies", {}, buildAnomalyParams(filters)),
 };
 
 // ---------------------------------------------------------------------------
@@ -619,4 +623,107 @@ export interface PolicySummary {
 export interface PolicyListResponse {
   summary: PolicySummary;
   policies: PolicyOut[];
+}
+
+// ---------------------------------------------------------------------------
+// Forecasting & anomaly detection (Phase 7)
+// ---------------------------------------------------------------------------
+
+export interface ForecastPoint {
+  date: string;
+  moving_average: number;
+  linear_trend: number;
+  expected: number;
+  lower_bound: number;
+  upper_bound: number;
+}
+
+export interface ForecastTotals {
+  expected_30d: number;
+  lower_bound_30d: number;
+  upper_bound_30d: number;
+}
+
+export interface ForecastResponse {
+  sufficient_data: boolean;
+  message: string | null;
+  history_days: number;
+  horizon_days: number;
+  history: { start: string; end: string; daily_average: number } | null;
+  methods: Record<string, Record<string, number>> | null;
+  trend: "increasing" | "decreasing" | "stable" | null;
+  interval: string | null;
+  confidence: "HIGH" | "MEDIUM" | "LOW" | null;
+  forecast: ForecastPoint[];
+  totals: ForecastTotals | null;
+}
+
+export interface ForecastFilters {
+  horizonDays?: number;
+  projectId?: string;
+  service?: string;
+  environment?: Environment;
+}
+
+function buildForecastParams(filters: ForecastFilters): Record<string, string> {
+  const params: Record<string, string> = {};
+  if (filters.horizonDays) params["horizon_days"] = String(filters.horizonDays);
+  if (filters.projectId) params["project_id"] = filters.projectId;
+  if (filters.service) params["service"] = filters.service;
+  if (filters.environment) params["environment"] = filters.environment;
+  return params;
+}
+
+export interface AnomalyItem {
+  date: string;
+  project_id: string;
+  project_name: string;
+  service_id: string;
+  service_name: string;
+  resource_id: string | null;
+  resource_name: string | null;
+  actual: number;
+  expected: number;
+  difference: number;
+  percentage_change: number;
+  z_score: number | null;
+  severity: "LOW" | "MEDIUM" | "HIGH";
+  confidence: "HIGH" | "MEDIUM" | "LOW";
+  baseline_samples: number;
+}
+
+export interface AnomalySummary {
+  total: number;
+  by_severity: Record<"LOW" | "MEDIUM" | "HIGH", number>;
+  by_service: Record<string, number>;
+}
+
+export interface AnomalyListResponse {
+  summary: AnomalySummary;
+  pagination: Pagination;
+  items: AnomalyItem[];
+}
+
+export interface AnomalyFilters {
+  minZScore?: number;
+  severity?: "LOW" | "MEDIUM" | "HIGH";
+  projectId?: string;
+  service?: string;
+  environment?: Environment;
+  resourceId?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+function buildAnomalyParams(filters: AnomalyFilters): Record<string, string> {
+  const params: Record<string, string> = {};
+  if (filters.minZScore) params["min_z_score"] = String(filters.minZScore);
+  if (filters.severity) params["severity"] = filters.severity;
+  if (filters.projectId) params["project_id"] = filters.projectId;
+  if (filters.service) params["service"] = filters.service;
+  if (filters.environment) params["environment"] = filters.environment;
+  if (filters.resourceId) params["resource_id"] = filters.resourceId;
+  if (filters.page) params["page"] = String(filters.page);
+  if (filters.pageSize) params["page_size"] = String(filters.pageSize);
+  return params;
 }
