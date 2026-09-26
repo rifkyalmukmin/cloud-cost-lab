@@ -113,6 +113,8 @@ class ResourceUsage(Base):
     disk_utilization: Mapped[Decimal | None] = mapped_column(Numeric(6, 3))
     network_in_mb: Mapped[Decimal | None] = mapped_column(Numeric(14, 4))
     network_out_mb: Mapped[Decimal | None] = mapped_column(Numeric(14, 4))
+    # Cloud SQL / database open connections (Phase 9 monitoring)
+    connections: Mapped[int | None] = mapped_column(BigInteger)
     request_count: Mapped[int | None] = mapped_column(BigInteger)
     latency_ms: Mapped[Decimal | None] = mapped_column(Numeric(12, 3))
     error_rate_pct: Mapped[Decimal | None] = mapped_column(Numeric(6, 3))

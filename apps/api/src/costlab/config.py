@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     gcp_billing_location: str = "US"
     gcp_billing_max_days: int = 92
     gcp_billing_max_rows: int = 100_000
+    # --- Cloud Monitoring usage metrics (Phase 9; empty = not configured) --
+    gcp_monitoring_project: str = ""
+    gcp_monitoring_max_days: int = 30
+    gcp_monitoring_max_age_days: int = 7
     # Billing data freshness: max acceptable age of the newest data day (§41)
     freshness_max_hours: int = 48
 

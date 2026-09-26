@@ -329,6 +329,7 @@ def get_resource_detail(session: Session, resource_id: str) -> dict[str, Any] | 
                 network_out_mb=round(float(row.network_out_mb), 2)
                 if row.network_out_mb is not None
                 else None,
+                connections=row.connections,
                 request_count=row.request_count,
                 error_rate_pct=round(float(row.error_rate_pct), 3)
                 if row.error_rate_pct is not None

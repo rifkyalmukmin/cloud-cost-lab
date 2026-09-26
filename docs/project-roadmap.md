@@ -18,6 +18,7 @@
 | 6 | Budget & Governance | Budgets with warning/critical thresholds; five advisory policies; PASS/WARNING/VIOLATION | ✅ **Done** |
 | 7 | Forecasting & Anomaly | 30-day forecast (MA + linear trend) with range; rolling-average + z-score anomaly detection | ✅ **Done** |
 | 8 | GCP Billing Integration | BillingDataProvider: BigQuery-backed GCP provider (partition-aware, cost-guarded), freshness, security posture | ✅ **Done (dormant in demo mode)** |
+| 9 | GCP Monitoring Integration | MonitoringDataProvider: Cloud Monitoring metrics, connections metric, evidence-strengthened rules | ✅ **Done (dormant in demo mode)** |
 | 6 | Recommendation Engine | Idle detection, rightsizing, storage rules, lifecycle (OPEN→…→VERIFIED) | ⬜ Pending |
 | 7 | Budget | Budget model, thresholds, projected month-end, budget-risk alerts | ⬜ Pending |
 | 9 | Forecasting | 30-day moving average / linear regression with range | ⬜ Pending |
@@ -38,20 +39,18 @@ Milestone grouping:
 
 - **Foundation:** 0–1 · **Core product:** 2–12 · **Cloud & hardening:** 13–16 · **FinOps depth & portfolio:** 17–20
 
-## 2. Current phase: PHASE 8 — GCP Billing Integration (complete, dormant)
+## 2. Current phase: PHASE 9 — GCP Monitoring Integration (complete, dormant)
 
-> Safety: **inspection + code + tests only** — no GCP resource was created, no terraform apply. Real data requires the manual, human-approved steps in [`docs/gcp-setup.md`](gcp-setup.md).
+> Safety: code + tests only — no GCP resource created; activation is the documented manual step in [`docs/gcp-setup.md`](gcp-setup.md).
 
-- Pipeline: GCP Billing Export → BigQuery → `GCPBillingProvider` → the same `BillingSnapshot` contract the mock provider satisfies; `build_providers()` selects by mode (`DEMO_MODE=true` default stays fully local).
-- Query safety (§9, test-asserted): `_PARTITIONTIME` + `usage_start_time` filters, explicit column whitelist (no `SELECT *`), `GCP_BILLING_MAX_DAYS` range cap, `LIMIT` row cap, query parameters only, **dry run first** logging scanned bytes.
-- Mapping: slugified services, projects, resources from `resource.global_name` (coarse `gcp_resource` type — no guessing), **unattributed billing lines become honest per-scope bucket resources**, environment strictly from the `environment` label else **UNALLOCATED** (Environment literal extended); malformed rows fail at the boundary (`GCPBillingError`).
-- Security: credentials via ADC locally / WIF preferred in deployment — code never reads key files; `google-cloud-bigquery` is an optional `gcp` extra so the demo image stays light; `.gitignore` blocks service-account JSON patterns; no billing account IDs hardcoded.
-- Freshness (§41): `GET /api/freshness` returns `last_updated` / `data_age_hours` / `FRESH|STALE|UNKNOWN` (threshold `FRESHNESS_MAX_HOURS`, default 48h, inclusive boundary); the Overview page renders the status chip — the demo dataset honestly reports STALE.
-- Tests: 14 new (148 total) — valid/empty/error/auth-failure/malformed responses via stubbed BigQuery clients (no network, no credentials), query-safety assertions, demo-mode wiring unchanged, freshness boundaries. Docs: [`docs/gcp-billing.md`](gcp-billing.md), [`docs/bigquery-cost.md`](bigquery-cost.md), [`docs/gcp-setup.md`](gcp-setup.md), [`docs/cost-safety.md`](cost-safety.md).
+- `MonitoringDataProvider` interface with `MockMonitoringProvider` (demo dataset unchanged) and `GCPMonitoringProvider` (Cloud Monitoring via injected runner; ADC/WIF, optional `gcp` extra; real mode without monitoring config falls back to `EmptyMonitoringProvider`).
+- Metrics collected: CPU (0-1 → %), memory/disk (Ops Agent), network in/out (bytes → MB), **connections** (new `resource_usage.connections` column, migration 0004) and request counts; missing series ⇒ null (never 0), zero metrics kept, **stale series (newest sample > `GCP_MONITORING_MAX_AGE_DAYS`) dropped** instead of ingested as current; bounded 30-day window; metric failure aborts the load (`GCPMonitoringError`).
+- Recommendations strengthened with performance evidence: `IdleComputeRule` now corroborates with request counts (avg > 10/day ⇒ never idle) and open connections (avg > 2 ⇒ never idle), each added as evidence lines — cost alone ($30/month, no monitoring) produces nothing (unit-tested).
+- Tests: 15 new (163 total). Docs: [`docs/gcp-monitoring.md`](gcp-monitoring.md), [`docs/utilization-analysis.md`](utilization-analysis.md) (renamed from resource-analysis.md).
 
-## 3. Next phase: PHASE 9 — Monitoring / Data Freshness hardening (not started)
+## 3. Next phase: not started
 
-Per the user's sequencing the CLAUDE.md order shifts: next candidates are savings tracking, GCP monitoring integration, or Terraform. Entry criteria: this phase merged. **Do not start until explicitly instructed.**
+Candidates per the user's sequencing: savings tracking, Terraform, or security hardening. **Do not start until explicitly instructed.**
 
 ## 4. Definition of Done (applies to every phase)
 

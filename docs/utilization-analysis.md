@@ -26,6 +26,7 @@ column nullable — not every resource exposes every metric):
 | Disk utilization | % | VMs, Cloud SQL |
 | Network in / out | MB/day | all resources |
 | Request count | count/day | Cloud Storage, Artifact Registry |
+| Connections | open connections (avg/day) | Cloud SQL — **Phase 9 monitoring metric**; the committed mock dataset has no samples yet |
 | Latency | ms | modeled, but the mock dataset has **no samples** |
 | Error rate | % | Cloud Storage, Artifact Registry |
 
@@ -150,6 +151,8 @@ mock dataset):
 
 - Signals are CPU-only by design; memory/disk-based rules arrive with the
   recommendation engine where each rule owns its evidence.
+- Phase 9 adds monitoring corroboration to the idle rule (requests/connections
+  guards); Cloud SQL-specific rightsizing remains a later, cautious rule.
 - Utilization is daily; intra-day spikes need finer-grained monitoring data (Phase 9+).
 - The list endpoint aggregates on demand; at real fleet scale this belongs in a
   scheduled rollup table rather than a live query.

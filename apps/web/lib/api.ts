@@ -327,6 +327,7 @@ export interface UtilizationPoint {
   disk_utilization: number | null;
   network_in_mb: number | null;
   network_out_mb: number | null;
+  connections: number | null;
   request_count: number | null;
   error_rate_pct: number | null;
 }

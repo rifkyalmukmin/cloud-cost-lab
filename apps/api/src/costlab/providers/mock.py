@@ -12,7 +12,7 @@ from pathlib import Path
 
 from pydantic import TypeAdapter
 
-from costlab.providers.base import BillingDataProvider, UsageDataProvider
+from costlab.providers.base import BillingDataProvider, MonitoringDataProvider
 from costlab.schemas.input import (
     BillingSnapshot,
     CostRecordInput,
@@ -62,7 +62,7 @@ class MockBillingProvider(BillingDataProvider):
         )
 
 
-class MockUsageProvider(UsageDataProvider):
+class MockMonitoringProvider(MonitoringDataProvider):
     name = "mock"
 
     def __init__(self, data_dir: Path) -> None:
@@ -70,3 +70,7 @@ class MockUsageProvider(UsageDataProvider):
 
     def load_usage(self) -> list[UsageRecordInput]:
         return _usage_list.validate_python(_read_json(self.data_dir / "usage.json"))
+
+
+# Backward-compatible alias.
+MockUsageProvider = MockMonitoringProvider

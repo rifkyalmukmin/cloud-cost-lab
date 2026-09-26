@@ -42,6 +42,7 @@ METRIC_COLUMNS: dict[str, Any] = {
     "disk_utilization": ResourceUsage.disk_utilization,
     "network_in_mb": ResourceUsage.network_in_mb,
     "network_out_mb": ResourceUsage.network_out_mb,
+    "connections": ResourceUsage.connections,
     "request_count": ResourceUsage.request_count,
     "latency_ms": ResourceUsage.latency_ms,
     "error_rate_pct": ResourceUsage.error_rate_pct,
@@ -415,6 +416,7 @@ def get_utilization_series(
             disk_utilization=_r(row.disk_utilization),
             network_in_mb=_r(row.network_in_mb),
             network_out_mb=_r(row.network_out_mb),
+            connections=row.connections,
             request_count=row.request_count,
             error_rate_pct=_r(row.error_rate_pct, digits=3),
         )

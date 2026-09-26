@@ -22,7 +22,9 @@ class BillingDataProvider(ABC):
         """Load services, projects, resources and cost records."""
 
 
-class UsageDataProvider(ABC):
+class MonitoringDataProvider(ABC):
+    """Per-resource monitoring/utilization samples (Phase 9, CLAUDE.md §10)."""
+
     name: str
 
     @abstractmethod
@@ -30,12 +32,19 @@ class UsageDataProvider(ABC):
         """Load per-resource utilization samples."""
 
 
-class EmptyUsageProvider(UsageDataProvider):
-    """Real-mode usage source placeholder: contributes no samples until the
-    Cloud Monitoring integration exists. Utilization surfaces stay honest
-    (missing data), never mock numbers next to real billing."""
+# Backward-compatible aliases (the monitoring interface subsumes usage).
+UsageDataProvider = MonitoringDataProvider
+
+
+class EmptyMonitoringProvider(MonitoringDataProvider):
+    """Contributes no samples when monitoring is not configured. Utilization
+    surfaces stay honest (missing data) — mock numbers are never mixed with
+    real billing."""
 
     name = "none"
 
     def load_usage(self) -> list[UsageRecordInput]:
         return []
+
+
+EmptyUsageProvider = EmptyMonitoringProvider

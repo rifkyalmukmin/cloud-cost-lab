@@ -33,6 +33,10 @@ IDLE_CPU_P95_MAX = 20.0  # burst guard: a low average with high P95 is NOT idle
 IDLE_NETWORK_MB_MAX = 100.0  # combined avg in+out MB/day, strictly below
 IDLE_MIN_SAMPLES = 7  # at least a week of daily samples
 IDLE_SCHEDULE_FACTOR = 0.6  # dev VMs: ~10h/day on => ~60% of the bill saved
+# Performance corroboration: active traffic or open connections contradict
+# "idle" regardless of cost — cost alone never makes a recommendation.
+IDLE_REQUESTS_PER_DAY_MAX = 10.0  # avg, strictly above => not idle
+IDLE_CONNECTIONS_MAX = 2.0  # avg open connections, strictly above => not idle
 
 # --- OversizedComputeRule (CLAUDE.md §17) ------------------------------------
 OVERSIZED_CPU_AVG_MAX = 20.0  # percent, strictly below
@@ -132,6 +136,34 @@ class IdleComputeRule(RecommendationRule):
                 )
                 if net_avg >= IDLE_NETWORK_MB_MAX:
                     continue
+            # Performance corroboration from monitoring: real traffic or open
+            # connections contradict idle — even when cost looks idle-worthy.
+            requests = row.metrics.get("request_count")
+            if requests is not None:
+                if requests.avg > IDLE_REQUESTS_PER_DAY_MAX:
+                    continue
+                evidence.append(
+                    Evidence(
+                        f"requests average {requests.avg:.1f}/day over {requests.sample_count} "
+                        f"days (guard: <= {IDLE_REQUESTS_PER_DAY_MAX:.0f}/day)",
+                        metric="request_count.avg",
+                        value=round(requests.avg, 2),
+                        threshold=IDLE_REQUESTS_PER_DAY_MAX,
+                    )
+                )
+            connections = row.metrics.get("connections")
+            if connections is not None:
+                if connections.avg > IDLE_CONNECTIONS_MAX:
+                    continue
+                evidence.append(
+                    Evidence(
+                        f"open connections average {connections.avg:.1f} over "
+                        f"{connections.sample_count} days (guard: <= {IDLE_CONNECTIONS_MAX:.0f})",
+                        metric="connections.avg",
+                        value=round(connections.avg, 2),
+                        threshold=IDLE_CONNECTIONS_MAX,
+                    )
+                )
             if row.cost_in_window is None or row.cost_in_window <= 0:
                 continue  # no cost evidence — nothing to save
             evidence.append(

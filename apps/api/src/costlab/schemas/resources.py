@@ -93,6 +93,7 @@ class UtilizationPoint(BaseModel):
     disk_utilization: float | None
     network_in_mb: float | None
     network_out_mb: float | None
+    connections: int | None
     request_count: int | None
     error_rate_pct: float | None
 

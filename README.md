@@ -4,7 +4,7 @@
 
 Cloud Cost Lab aggregates cloud cost and resource utilization data, detects waste and optimization opportunities, estimates **potential** savings, monitors budgets, forecasts future cost with explicit uncertainty, and produces evidence-based recommendations that require **human approval** before any impactful action.
 
-**Current status: PHASE 8 — GCP Billing Integration complete (dormant in demo mode).** BigQuery-backed `GCPBillingProvider` behind the same provider abstraction as the mock (partition-aware, cost-guarded queries, freshness surfacing) — code-complete and tested with stubs; enabling real data is a documented manual step. See [`docs/project-roadmap.md`](docs/project-roadmap.md).
+**Current status: PHASE 9 — GCP Monitoring Integration complete (dormant in demo mode).** Cloud Monitoring feeds real utilization (`GCPMonitoringProvider`) beside the BigQuery billing provider, and monitoring evidence (requests/connections) now strengthens recommendations. BigQuery-backed `GCPBillingProvider` behind the same provider abstraction as the mock (partition-aware, cost-guarded queries, freshness surfacing) — code-complete and tested with stubs; enabling real data is a documented manual step. See [`docs/project-roadmap.md`](docs/project-roadmap.md).
 
 ---
 
@@ -74,7 +74,7 @@ DEMO_MODE=true   →   synthetic billing + utilization data (data/mock/)
 
 Mock and real data sources implement the same `BillingDataProvider` interface, so the dashboard and recommendation engine behave identically in both modes. See `docs/decisions/ADR-003-demo-mode.md`.
 
-### Run it locally (Phase 1–8)
+### Run it locally (Phase 1–9)
 
 ```bash
 cp .env.example .env
@@ -163,7 +163,7 @@ Every dashboard section handles loading / error / empty / success states; Recomm
 
 **This project must not become an expensive cloud project.** Core rules:
 
-- Mock mode is the default; the BigQuery billing provider is code-complete but dormant until `DEMO_MODE=false` + export configured (docs/gcp-setup.md).
+- Mock mode is the default; the BigQuery billing and Cloud Monitoring providers are code-complete but dormant until `DEMO_MODE=false` + the export/monitoring are configured (docs/gcp-setup.md, docs/gcp-monitoring.md).
 - No GCP resource is created without stating: purpose, cost, smallest configuration, shutdown and destroy path.
 - `terraform apply` only after a reviewed plan; BigQuery queries are partition-filtered and column-pruned; budget alerts are configured early.
 - Potential savings are labelled *potential*; savings are called *realized* only after verified post-change data.

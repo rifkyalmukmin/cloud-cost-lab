@@ -72,6 +72,7 @@ class UsageRecordInput(BaseModel):
     disk_utilization: float | None = Field(default=None, ge=0, le=100)
     network_in_mb: float | None = Field(default=None, ge=0)
     network_out_mb: float | None = Field(default=None, ge=0)
+    connections: int | None = Field(default=None, ge=0)
     request_count: int | None = Field(default=None, ge=0)
     latency_ms: float | None = Field(default=None, ge=0)
     error_rate_pct: float | None = Field(default=None, ge=0, le=100)
