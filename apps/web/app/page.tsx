@@ -26,6 +26,7 @@ function changeBadge(changePct: number | null) {
 }
 
 export default function OverviewPage() {
+  const freshness = useApi(() => api.getFreshness(), []);
   const monthly = useApi(() => api.costTrend({}, "month"), []);
   const daily = useApi(() => api.costTrend({}, "day"), []);
   const byService = useApi(() => api.costByService({}), []);
@@ -45,6 +46,28 @@ export default function OverviewPage() {
           <p className="text-sm text-muted-foreground">
             Data period {formatDate(monthly.data.period.start)} – {formatDate(monthly.data.period.end)} · all values
             estimated (synthetic demo data)
+          </p>
+        ) : null}
+        {freshness.data ? (
+          <p className="mt-1 text-xs">
+            <span
+              className={`inline-flex rounded-full border px-2 py-0.5 font-medium uppercase tracking-wide ${
+                freshness.data.status === "FRESH"
+                  ? "border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
+                  : freshness.data.status === "STALE"
+                    ? "border-amber-500/40 text-amber-600 dark:text-amber-400"
+                    : "border-border text-muted-foreground"
+              }`}
+            >
+              {freshness.data.status}
+            </span>{" "}
+            <span className="text-muted-foreground">
+              last updated {freshness.data.last_updated ?? "—"} · data age{" "}
+              {freshness.data.data_age_hours === null
+                ? "—"
+                : `${freshness.data.data_age_hours.toFixed(0)} h`}{" "}
+              (max {freshness.data.max_age_hours} h)
+            </span>
           </p>
         ) : null}
       </div>

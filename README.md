@@ -4,7 +4,7 @@
 
 Cloud Cost Lab aggregates cloud cost and resource utilization data, detects waste and optimization opportunities, estimates **potential** savings, monitors budgets, forecasts future cost with explicit uncertainty, and produces evidence-based recommendations that require **human approval** before any impactful action.
 
-**Current status: PHASE 7 — Forecasting & Cost Anomaly complete.** 30-day cost forecast (moving average + linear trend, explicit range + confidence) and point-level anomaly detection (rolling average + z-score) on top of budgets, governance policies, the recommendation engine and the utilization layer (`DEMO_MODE=true`). See [`docs/project-roadmap.md`](docs/project-roadmap.md).
+**Current status: PHASE 8 — GCP Billing Integration complete (dormant in demo mode).** BigQuery-backed `GCPBillingProvider` behind the same provider abstraction as the mock (partition-aware, cost-guarded queries, freshness surfacing) — code-complete and tested with stubs; enabling real data is a documented manual step. See [`docs/project-roadmap.md`](docs/project-roadmap.md).
 
 ---
 
@@ -74,7 +74,7 @@ DEMO_MODE=true   →   synthetic billing + utilization data (data/mock/)
 
 Mock and real data sources implement the same `BillingDataProvider` interface, so the dashboard and recommendation engine behave identically in both modes. See `docs/decisions/ADR-003-demo-mode.md`.
 
-### Run it locally (Phase 1–7)
+### Run it locally (Phase 1–8)
 
 ```bash
 cp .env.example .env
@@ -121,6 +121,8 @@ GET /api/forecast                30-day projection: expected + lower/upper
                                  bounds + confidence (MA + linear trend)
 GET /api/anomalies               unexpected cost increases vs a 14-day
                                  rolling baseline (z-score, severity)
+GET /api/freshness               data freshness: FRESH / STALE / UNKNOWN
+                                 with last_updated and data age
 ```
 
 Phase 2 dashboard:
@@ -161,7 +163,7 @@ Every dashboard section handles loading / error / empty / success states; Recomm
 
 **This project must not become an expensive cloud project.** Core rules:
 
-- Mock mode is the default; real GCP integration is opt-in (Phase 9+).
+- Mock mode is the default; the BigQuery billing provider is code-complete but dormant until `DEMO_MODE=false` + export configured (docs/gcp-setup.md).
 - No GCP resource is created without stating: purpose, cost, smallest configuration, shutdown and destroy path.
 - `terraform apply` only after a reviewed plan; BigQuery queries are partition-filtered and column-pruned; budget alerts are configured early.
 - Potential savings are labelled *potential*; savings are called *realized* only after verified post-change data.

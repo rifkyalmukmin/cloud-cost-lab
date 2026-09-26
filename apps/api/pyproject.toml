@@ -22,6 +22,11 @@ dev = [
     "ruff~=0.8.4",
     "mypy~=1.14.0",
 ]
+# Only needed when DEMO_MODE=false (BigQuery billing export, Phase 8).
+# Kept optional so the local/demo image stays small and light.
+gcp = [
+    "google-cloud-bigquery~=3.25.0",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -51,5 +56,5 @@ warn_unused_ignores = true
 plugins = []
 
 [[tool.mypy.overrides]]
-module = ["alembic.*", "psycopg2.*"]
+module = ["alembic.*", "psycopg2.*", "google.*"]
 ignore_missing_imports = true

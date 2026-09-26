@@ -77,3 +77,41 @@ Before declaring any phase done:
 - [ ] Secret scan (Gitleaks pattern check) is clean for everything committed.
 - [ ] Any new GCP dependency is documented with cost impact in the phase docs.
 - [ ] Demo remains fully reproducible in mock mode with zero cloud cost.
+
+---
+
+## Phase 8 addendum — GCP Billing Integration (2026-09-13)
+
+Per the §2 checklist, the Phase 8 work was **inspection + code + tests only**.
+No GCP resource was created, no `terraform apply` was run, and nothing in the
+GCP project changed. Full details: [`docs/gcp-setup.md`](gcp-setup.md),
+[`docs/bigquery-cost.md`](bigquery-cost.md).
+
+### What the integration needs (when a human decides to enable it)
+
+| Resource | Billable? | Purpose | Cost risk | Destroy / disable |
+| --- | --- | --- | --- | --- |
+| BigQuery dataset + billing export table | Storage free for first 90 days/partition, then ~$0.02/GB/mo (lab export is MBs) | destination of the Billing Export pipeline | negligible; bounded retention recommended | `bq rm -r -f cloud_cost_lab_billing` (verify first) |
+| Billing export configuration | Free | daily export job from Cloud Billing | none | Billing console → Billing export → Disable |
+| BigQuery queries by this platform | ~$5/TB scanned; partition + column filtered ⇒ MBs ⇒ <$0.001/query | read the export | guarded: dry-run log, day cap, row cap, parameterized | `DEMO_MODE=true` stops all cloud reads |
+
+### Permissions required (least privilege)
+
+- `roles/bigquery.dataViewer` on the export dataset (read only)
+- `roles/bigquery.jobUser` on the project (run queries)
+- **not** granted: editor/owner/billing-admin — the platform is read-only
+
+### Security posture
+
+- Credentials: Application Default Credentials locally; Workload Identity
+  Federation preferred in deployment; **no key files** — code never reads one
+  and `.gitignore` blocks `*service-account*.json` / `credentials*.json`.
+- No billing account IDs or project IDs are hardcoded (config via
+  `GCP_BILLING_*` env vars; `.env` is git-ignored).
+
+### Failure / rollback
+
+- Any BigQuery/auth problem raises `GCPBillingError` with an actionable
+  message — the API never serves partial data silently.
+- Rollback is one env var: `DEMO_MODE=true` restores the fully local mock
+  pipeline; the data contract is identical.

@@ -31,6 +31,16 @@ class Settings(BaseSettings):
     postgres_user: str = "cloud_cost_lab"
     postgres_password: str = "change-me-local-only"  # local-only placeholder
 
+    # --- BigQuery billing export (Phase 8; empty = not configured) ------
+    gcp_billing_project: str = ""
+    gcp_billing_dataset: str = ""
+    gcp_billing_table: str = ""
+    gcp_billing_location: str = "US"
+    gcp_billing_max_days: int = 92
+    gcp_billing_max_rows: int = 100_000
+    # Billing data freshness: max acceptable age of the newest data day (§41)
+    freshness_max_hours: int = 48
+
     # --- api ---
     api_host: str = "0.0.0.0"
     api_port: int = 8000

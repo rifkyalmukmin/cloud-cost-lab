@@ -10,7 +10,8 @@ from pydantic import ValidationError
 
 from costlab.config import Settings
 from costlab.providers import build_providers
-from costlab.providers.base import RealBillingProvider, RealUsageProvider
+from costlab.providers.base import EmptyUsageProvider
+from costlab.providers.gcp import GCPBillingProvider
 from costlab.providers.mock import MockBillingProvider, MockUsageProvider
 
 MOCK_DIR = Path(__file__).resolve().parents[3] / "data" / "mock"
@@ -77,11 +78,9 @@ def test_mock_provider_missing_file_has_clear_error(tmp_path: Path) -> None:
         MockBillingProvider(tmp_path).load_snapshot()
 
 
-def test_real_providers_fail_loudly() -> None:
-    with pytest.raises(NotImplementedError, match="Phase 9"):
-        RealBillingProvider().load_snapshot()
-    with pytest.raises(NotImplementedError, match="Phase 9"):
-        RealUsageProvider().load_usage()
+def test_real_mode_without_config_fails_loudly() -> None:
+    with pytest.raises(RuntimeError, match="GCP_BILLING_PROJECT"):
+        build_providers(Settings(demo_mode=False))
 
 
 def test_provider_factory_selects_by_demo_mode() -> None:
@@ -89,6 +88,12 @@ def test_provider_factory_selects_by_demo_mode() -> None:
     assert isinstance(mock_providers.billing, MockBillingProvider)
     assert isinstance(mock_providers.usage, MockUsageProvider)
 
-    real_providers = build_providers(Settings(demo_mode=False))
-    assert isinstance(real_providers.billing, RealBillingProvider)
-    assert isinstance(real_providers.usage, RealUsageProvider)
+    real_providers = build_providers(
+        Settings(
+            demo_mode=False, gcp_billing_project="p", gcp_billing_dataset="d", gcp_billing_table="t"
+        )
+    )
+    assert isinstance(real_providers.billing, GCPBillingProvider)
+    # no monitoring integration yet: real mode contributes no usage samples
+    assert isinstance(real_providers.usage, EmptyUsageProvider)
+    assert real_providers.usage.load_usage() == []

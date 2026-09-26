@@ -6,7 +6,7 @@
  * `.env.example`); nothing else is hardcoded.
  */
 
-export type Environment = "development" | "staging" | "production";
+export type Environment = "development" | "staging" | "production" | "UNALLOCATED";
 export type Granularity = "day" | "week" | "month";
 
 export interface Period {
@@ -255,6 +255,7 @@ export const api = {
   createBudget: (payload: BudgetCreate) =>
     request<BudgetOut>("/api/budget", {}, {}, "POST", payload),
   listPolicies: () => request<PolicyListResponse>("/api/policies"),
+  getFreshness: () => request<FreshnessResponse>("/api/freshness"),
   getForecast: (filters: ForecastFilters = {}) =>
     request<ForecastResponse>("/api/forecast", {}, buildForecastParams(filters)),
   listAnomalies: (filters: AnomalyFilters = {}) =>
@@ -726,4 +727,15 @@ function buildAnomalyParams(filters: AnomalyFilters): Record<string, string> {
   if (filters.page) params["page"] = String(filters.page);
   if (filters.pageSize) params["page_size"] = String(filters.pageSize);
   return params;
+}
+
+// ---------------------------------------------------------------------------
+// Data freshness (Phase 8, CLAUDE.md §41)
+// ---------------------------------------------------------------------------
+
+export interface FreshnessResponse {
+  status: "FRESH" | "STALE" | "UNKNOWN";
+  last_updated: string | null;
+  data_age_hours: number | null;
+  max_age_hours: number;
 }
