@@ -46,7 +46,7 @@ Milestone grouping:
 - `POST /api/budget` creates budgets with strict server-side validation (positive limit, thresholds in (0,100), warning strictly below critical, scope value required, unknown fields forbidden) — 422 + nothing created on bad input. CORS now allows POST from configured origins only (no credentials).
 - `policies` table + five advisory policies evaluated at read time (CLAUDE.md §32): REQUIRE_OWNER_LABEL (WARNING: legacy sandbox), REQUIRE_ENVIRONMENT_LABEL (PASS), MAX_MONTHLY_COST (VIOLATION: sql-shop-orders-prod $17.27 > $10; **strictly-above** boundary unit-tested at 10.00/10.01), NO_PUBLIC_DATABASE (WARNING "cannot verify" — never a false PASS without reachability data), DEV_RESOURCE_SCHEDULE (WARNING: three dev resources without schedule labels).
 - Violations produce warnings/evidence/audit information only — no endpoint can modify cloud infrastructure. `/budget` and `/policies` pages render statuses, threshold markers, findings and the caveats.
-- Backend: 12 new pytest tests (129 total) covering the threshold ladder, budget evaluation vs dataset recomputation, POST validation matrix, CORS POST preflight, and policy boundaries. Docs: [`docs/budget.md`](budget.md), [`docs/governance.md`](governance.md).
+- Backend: 12 new pytest tests (117 total) covering the threshold ladder, budget evaluation vs dataset recomputation, POST validation matrix, CORS POST preflight, and policy boundaries. Docs: [`docs/budget.md`](budget.md), [`docs/governance.md`](governance.md).
 
 ## 3. Next phase: PHASE 7 — Forecasting (not started)
 
