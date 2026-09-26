@@ -18,6 +18,7 @@ from costlab.db.session import get_session
 from costlab.schemas.common import Environment
 from costlab.schemas.cost import CostFilters
 from costlab.schemas.resources import ResourceFilters
+from costlab.schemas.utilization import UtilizationFilters
 
 SessionDep = Annotated[Session, Depends(get_session)]
 
@@ -128,3 +129,41 @@ def resource_filters(
 
 
 ResourceFiltersDep = Annotated[ResourceFilters, Depends(resource_filters)]
+
+
+def utilization_filters(
+    start_date: Annotated[
+        date | None,
+        Query(description="Inclusive start (ISO date). Defaults to oldest available data."),
+    ] = None,
+    end_date: Annotated[
+        date | None,
+        Query(description="Inclusive end (ISO date). Defaults to newest available data."),
+    ] = None,
+    project_id: Annotated[
+        str | None, Query(max_length=64, description="GCP-style project id.")
+    ] = None,
+    service: Annotated[
+        str | None, Query(max_length=64, description="Service slug, e.g. compute-engine.")
+    ] = None,
+    environment: Annotated[
+        Environment | None, Query(description="development | staging | production")
+    ] = None,
+) -> UtilizationFilters:
+    try:
+        return UtilizationFilters(
+            start_date=start_date,
+            end_date=end_date,
+            project_id=project_id,
+            service=service,
+            environment=environment,
+        )
+    except ValidationError as exc:
+        # UtilizationFilters is built here, not parsed by FastAPI, so surface its
+        # validation errors (e.g. start_date > end_date) as proper 422s.
+        raise HTTPException(
+            status_code=422, detail=f"Invalid filters: {exc.errors()[0]['msg']}"
+        ) from exc
+
+
+UtilizationFiltersDep = Annotated[UtilizationFilters, Depends(utilization_filters)]

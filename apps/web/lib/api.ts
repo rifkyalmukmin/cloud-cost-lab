@@ -212,6 +212,13 @@ export const api = {
     request<ResourceListResponse>("/api/resources", {}, buildResourceParams(filters)),
   getResource: (resourceId: string) =>
     request<ResourceDetailResponse>(`/api/resources/${encodeURIComponent(resourceId)}`),
+  listUtilization: (filters: UtilizationQueryFilters = {}) =>
+    request<UtilizationListResponse>("/api/utilization", filters, buildUtilizationParams(filters)),
+  getUtilization: (resourceId: string, filters: UtilizationQueryFilters = {}) =>
+    request<UtilizationDetailResponse>(
+      `/api/utilization/${encodeURIComponent(resourceId)}`,
+      filters,
+    ),
 };
 
 // ---------------------------------------------------------------------------
@@ -315,6 +322,91 @@ function buildResourceParams(filters: ResourceFilters): Record<string, string> {
   if (filters.owner) params["owner"] = filters.owner;
   if (filters.team) params["team"] = filters.team;
   if (filters.unallocated) params["unallocated"] = "true";
+  if (filters.page) params["page"] = String(filters.page);
+  if (filters.pageSize) params["page_size"] = String(filters.pageSize);
+  return params;
+}
+
+// ---------------------------------------------------------------------------
+// Utilization analytics (Phase 4) — evidence only, no recommendations
+// ---------------------------------------------------------------------------
+
+/** Stats for one metric over the window. A metric with no samples at all is
+ * missing (never 0) and is listed in `missingMetrics` instead. */
+export interface UtilizationMetricStats {
+  avg: number;
+  min: number;
+  max: number;
+  p95: number;
+  stddev: number | null;
+  sample_count: number;
+}
+
+/** Heuristic evidence flags computed from CPU utilization; null when the
+ * resource has no CPU samples, so "no signal" ≠ "signal false". */
+export interface EvidenceSignals {
+  low_utilization: boolean | null;
+  high_utilization: boolean | null;
+  unstable_utilization: boolean | null;
+}
+
+export interface SignalCounts {
+  low_utilization: number;
+  high_utilization: number;
+  unstable_utilization: number;
+  missing_cpu: number;
+}
+
+export interface UtilizationItem {
+  resource_id: string;
+  resource_name: string;
+  resource_type: string;
+  service_id: string;
+  service_name: string;
+  project_id: string;
+  project_name: string;
+  environment: Environment;
+  region: string;
+  window: Period;
+  metrics: Record<string, UtilizationMetricStats>;
+  missing_metrics: string[];
+  avg_cpu: number | null;
+  cost_in_window: number | null;
+  cost_credits_in_window: number | null;
+  cost_net_in_window: number | null;
+  signals: EvidenceSignals;
+}
+
+export interface UtilizationListResponse {
+  window: Period | null;
+  pagination: Pagination;
+  signal_counts: SignalCounts;
+  items: UtilizationItem[];
+}
+
+export interface UtilizationDetailResponse extends UtilizationItem {
+  machine_type: string | null;
+  series: UtilizationPoint[];
+}
+
+/** Filters accepted by the /api/utilization endpoints. */
+export interface UtilizationQueryFilters {
+  startDate?: string;
+  endDate?: string;
+  projectId?: string;
+  service?: string;
+  environment?: Environment;
+  page?: number;
+  pageSize?: number;
+}
+
+function buildUtilizationParams(filters: UtilizationQueryFilters): Record<string, string> {
+  const params: Record<string, string> = {};
+  if (filters.startDate) params["start_date"] = filters.startDate;
+  if (filters.endDate) params["end_date"] = filters.endDate;
+  if (filters.projectId) params["project_id"] = filters.projectId;
+  if (filters.service) params["service"] = filters.service;
+  if (filters.environment) params["environment"] = filters.environment;
   if (filters.page) params["page"] = String(filters.page);
   if (filters.pageSize) params["page_size"] = String(filters.pageSize);
   return params;

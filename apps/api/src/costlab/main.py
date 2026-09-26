@@ -11,6 +11,7 @@ from costlab.api.middleware import RequestContextMiddleware
 from costlab.api.routes_cost import router as cost_router
 from costlab.api.routes_health import router as health_router
 from costlab.api.routes_resources import router as resources_router
+from costlab.api.routes_utilization import router as utilization_router
 from costlab.config import get_settings
 from costlab.logging_config import setup_logging
 
@@ -41,6 +42,7 @@ def create_app() -> FastAPI:
     app.include_router(health_router)
     app.include_router(cost_router)
     app.include_router(resources_router)
+    app.include_router(utilization_router)
     return app
 
 

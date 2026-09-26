@@ -4,7 +4,7 @@
 
 Cloud Cost Lab aggregates cloud cost and resource utilization data, detects waste and optimization opportunities, estimates **potential** savings, monitors budgets, forecasts future cost with explicit uncertainty, and produces evidence-based recommendations that require **human approval** before any impactful action.
 
-**Current status: PHASE 3 — Resource Inventory complete.** Resource inventory with cost↔utilization linkage (`/resources`) on top of the Phase 2 dashboard and the Phase 1 mock cost engine (`DEMO_MODE=true`). See [`docs/project-roadmap.md`](docs/project-roadmap.md).
+**Current status: PHASE 4 — Utilization Analysis complete.** Cost↔utilization evidence layer (`/utilization`: avg/min/max/P95 per metric, low/high/unstable/missing signals) on top of the resource inventory, dashboard and mock cost engine (`DEMO_MODE=true`). See [`docs/project-roadmap.md`](docs/project-roadmap.md).
 
 ---
 
@@ -74,7 +74,7 @@ DEMO_MODE=true   →   synthetic billing + utilization data (data/mock/)
 
 Mock and real data sources implement the same `BillingDataProvider` interface, so the dashboard and recommendation engine behave identically in both modes. See `docs/decisions/ADR-003-demo-mode.md`.
 
-### Run it locally (Phase 1–3)
+### Run it locally (Phase 1–4)
 
 ```bash
 cp .env.example .env
@@ -101,6 +101,10 @@ GET /api/resources               resource inventory: filters + pagination,
                                  monthly cost (trailing 30d) + latest utilization
 GET /api/resources/{id}          detail: cost history + utilization series,
                                  metadata, ownership, labels
+GET /api/utilization             per-resource metric stats (avg/min/max/P95/
+                                 stddev) + cost over the same window +
+                                 evidence signals (low/high/unstable/missing)
+GET /api/utilization/{id}        one resource: stats + daily series
 ```
 
 Phase 2 dashboard:
@@ -118,9 +122,13 @@ Phase 2 dashboard:
 /resources/{id}                  Resource detail: cost history + utilization charts,
                                  ownership (UNALLOCATED when missing), metadata,
                                  labels
+/utilization                     Utilization Analysis: evidence summary, Cost
+                                 vs Utilization chart (cost-in-window vs avg CPU),
+                                 per-resource avg/P95/stddev table — evidence
+                                 only, no automatic recommendations
 ```
 
-Every dashboard section handles loading / error / empty / success states; Potential Savings is an explicit empty state until the recommendation engine exists (Phase 4). Details: [`docs/dashboard.md`](docs/dashboard.md) · Backend setup & testing: [`docs/local-development.md`](docs/local-development.md) · What the numbers mean: [`docs/cost-model.md`](docs/cost-model.md).
+Every dashboard section handles loading / error / empty / success states; Potential Savings is an explicit empty state until the recommendation engine exists. Utilization signals are evidence only — no automatic advice (CLAUDE.md §38). Details: [`docs/dashboard.md`](docs/dashboard.md) · Backend setup & testing: [`docs/local-development.md`](docs/local-development.md) · What the numbers mean: [`docs/cost-model.md`](docs/cost-model.md).
 
 ## 7. Cost safety
 
@@ -145,7 +153,7 @@ Full policy: [`docs/cost-safety.md`](docs/cost-safety.md).
 cloud-cost-lab/
 ├── apps/
 │   ├── api/            FastAPI backend — Phase 1 IMPLEMENTED (src/, alembic/, tests/)
-│   └── web/            Next.js dashboard — Phase 2–3 IMPLEMENTED (overview, cost explorer, resource inventory)
+│   └── web/            Next.js dashboard — Phase 2–4 IMPLEMENTED (overview, cost explorer, resources, utilization)
 ├── analytics/          cost / utilization / recommendations / forecasting modules
 ├── data/
 │   └── mock/           committed deterministic dataset + generator scenario source
