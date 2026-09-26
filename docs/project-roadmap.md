@@ -23,30 +23,29 @@
 | 7 | Budget | Budget model, thresholds, projected month-end, budget-risk alerts | ⬜ Pending |
 | 9 | Forecasting | 30-day moving average / linear regression with range | ⬜ Pending |
 | 10 | Anomaly Detection | Rolling average + threshold; z-score later | ⬜ Pending |
-| 14 | Savings Tracking | Potential vs realized savings with verification | ⬜ Pending |
+| 15 | Savings Tracking | Potential vs realized savings with verification | ⬜ Pending |
 | 11 | GCP Integration | Billing Export → BigQuery (cost-protected), real providers | ⬜ Pending |
-| 15 | Monitoring / Freshness | Metrics, structured logs, SLOs, STALE/FRESH labelling | ⬜ Pending |
-| 16 | Terraform | IaC for GCP resources with plan-review + destroy documentation | ⬜ Pending |
-| 17 | Security | Least-privilege IAM, Secret Manager, Gitleaks/Trivy | ⬜ Pending |
-| 18 | CI/CD | GitHub Actions: lint → test → build → security scan → Docker | ⬜ Pending |
-| 19 | FinOps Health Score | Heuristic score: visibility, allocation, optimization, governance, forecasting, automation | ⬜ Pending |
-| 20 | Reports | Daily/weekly/monthly report generation | ⬜ Pending |
-| 21 | AI Advisor | Read-only AI Cloud Cost Advisor with structured context + audit log | ⬜ Pending |
-| 22 | Demo Scenarios | Scripted incidents/scenarios (idle VM, spike, budget risk, …) | ⬜ Pending |
-| 23 | Portfolio Preparation | README polish, screenshots, demo video, CV & interview docs | ⬜ Pending |
+| 16 | Monitoring / Freshness | Metrics, structured logs, SLOs, STALE/FRESH labelling | ⬜ Pending |
+| 17 | Terraform | IaC for GCP resources with plan-review + destroy documentation | ⬜ Pending |
+| 18 | Security | Least-privilege IAM, Secret Manager, Gitleaks/Trivy | ⬜ Pending |
+| 19 | CI/CD | GitHub Actions: lint → test → build → security scan → Docker | ⬜ Pending |
+| 20 | FinOps Health Score | Heuristic score: visibility, allocation, optimization, governance, forecasting, automation | ⬜ Pending |
+| 21 | Reports | Daily/weekly/monthly report generation | ⬜ Pending |
+| 22 | AI Advisor | Read-only AI Cloud Cost Advisor with structured context + audit log | ⬜ Pending |
+| 23 | Demo Scenarios | Scripted incidents/scenarios (idle VM, spike, budget risk, …) | ⬜ Pending |
+| 24 | Portfolio Preparation | README polish, screenshots, demo video, CV & interview docs | ⬜ Pending |
 
 Milestone grouping:
 
 - **Foundation:** 0–1 · **Core product:** 2–12 · **Cloud & hardening:** 13–17 · **FinOps depth & portfolio:** 18–21
 
-## 2. Current phase: PHASE 13 — Savings Tracking (complete)
+## 2. Current phase: PHASE 14 — AI Cloud Cost Advisor (complete)
 
-- **Lifecycle** (CLAUDE.md §23): OPEN → APPROVED → IMPLEMENTED → VERIFIED, REJECTED branch. Transitions enforced per source status (`409` otherwise): `POST /{id}/implement` records `implemented_at` (backfillable), `POST /{id}/verify` computes **realized savings from actual data**.
-- **Before/after calculation:** 30-day net-cost daily averages around the implementation date (≥ 7 after-days required); realized = monthly-equivalent difference; **negative realized stored as measured**; insufficient after-data → `409` and the saving stays potential — simulated numbers are never called realized; a caller-measured `actual_cost_after` is accepted and labelled `source="reported"`.
-- **Audit trail:** append-only `audit_logs` table (actor, action, from→to, details, request id) written on every transition; `GET /api/recommendations/audit-logs` (newest first, bounded).
-- `GET /api/recommendations/savings` — potential (OPEN+APPROVED), approved, implemented, verified, **realized** (VERIFIED-only measured sum) and rejected-foregone, per status.
-- `/savings` UI: five stage cards + lifecycle breakdown + verification explanation; detail page gained Mark-implemented / Verify buttons.
-- Tests: 8 new (190 total) — approve/reject/implement/verify flows, dataset-recomputed realized savings, honesty guards (409 without after-data, negative stored), audit trail. Docs: [`docs/savings.md`](savings.md).
+- Pluggable `AIAdvisorProvider`: deterministic `MockAdvisorProvider` (default — offline, reproducible, CI-safe) and an optional OpenAI-compatible `LLMAPIProvider` (`AI_PROVIDER` + `AI_API_KEY` from the environment; stdlib HTTP client; never hardcoded/committed).
+- Structured context builder (`build_advisor_context`): bounded, whitelisted facts — cost, per-resource utilization, recommendations (top by priority), anomalies, forecast, budgets, savings lifecycle, environment/freshness.
+- Six supported questions with keyword intent detection; the seven-section answer contract (Summary/Evidence/Likely Cause/Recommendation/Potential Savings/Risk/Confidence); **"Insufficient evidence"** returned when the context cannot support an answer — never invented.
+- **Safety (§34/ADR-008):** read-only by construction (no tools, no execution path); question sanitization + injection-marker refusal; LLM safety system prompt; no credentials or secrets in the context; every action remains behind the Phase 5/13 approval lifecycle.
+- Endpoints: `POST /api/ai/advisor`, `GET /api/ai/status`. Tests: 16 new (198 total). Docs: [`docs/ai-advisor.md`](ai-advisor.md).
 
 ## 4. Definition of Done (applies to every phase)
 

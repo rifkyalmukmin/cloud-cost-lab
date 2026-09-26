@@ -31,6 +31,12 @@ class Settings(BaseSettings):
     postgres_user: str = "cloud_cost_lab"
     postgres_password: str = "change-me-local-only"  # local-only placeholder
 
+    # --- AI advisor (Phase 14; "mock" = deterministic, offline) ---------
+    ai_provider: str = "mock"  # mock | openai-compatible
+    ai_base_url: str = ""  # e.g. https://api.openai.com/v1 (set with AI_API_KEY)
+    ai_api_key: str = ""  # from environment / Secret Manager — never committed
+    ai_model: str = ""
+
     # --- BigQuery billing export (Phase 8; empty = not configured) ------
     gcp_billing_project: str = ""
     gcp_billing_dataset: str = ""

@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from costlab import __version__
 from costlab.api.errors import install_error_handlers
 from costlab.api.middleware import RequestContextMiddleware
+from costlab.api.routes_ai import router as ai_router
 from costlab.api.routes_cost import router as cost_router
 from costlab.api.routes_forecast import router_anomalies, router_forecast
 from costlab.api.routes_governance import router_budget, router_policies
@@ -52,6 +53,7 @@ def create_app() -> FastAPI:
     app.include_router(router_policies)
     app.include_router(router_forecast)
     app.include_router(router_anomalies)
+    app.include_router(ai_router)
     return app
 
 
