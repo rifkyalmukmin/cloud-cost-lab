@@ -4,7 +4,7 @@
 
 Cloud Cost Lab aggregates cloud cost and resource utilization data, detects waste and optimization opportunities, estimates **potential** savings, monitors budgets, forecasts future cost with explicit uncertainty, and produces evidence-based recommendations that require **human approval** before any impactful action.
 
-**Current status: PHASE 4 — Utilization Analysis complete.** Cost↔utilization evidence layer (`/utilization`: avg/min/max/P95 per metric, low/high/unstable/missing signals) on top of the resource inventory, dashboard and mock cost engine (`DEMO_MODE=true`). See [`docs/project-roadmap.md`](docs/project-roadmap.md).
+**Current status: PHASE 5 — Recommendation Engine complete.** Five evidence-backed rules (idle, oversized, unused disk, storage retention, cost anomaly) with a priority model and a human-approval lifecycle (`/recommendations`) on top of the utilization analysis, resource inventory, dashboard and mock cost engine (`DEMO_MODE=true`). See [`docs/project-roadmap.md`](docs/project-roadmap.md).
 
 ---
 
@@ -74,7 +74,7 @@ DEMO_MODE=true   →   synthetic billing + utilization data (data/mock/)
 
 Mock and real data sources implement the same `BillingDataProvider` interface, so the dashboard and recommendation engine behave identically in both modes. See `docs/decisions/ADR-003-demo-mode.md`.
 
-### Run it locally (Phase 1–4)
+### Run it locally (Phase 1–5)
 
 ```bash
 cp .env.example .env
@@ -105,6 +105,12 @@ GET /api/utilization             per-resource metric stats (avg/min/max/P95/
                                  stddev) + cost over the same window +
                                  evidence signals (low/high/unstable/missing)
 GET /api/utilization/{id}        one resource: stats + daily series
+GET /api/recommendations         evidence-backed optimization findings
+                                 (filter/sort/paginate) + approval summary
+GET /api/recommendations/{id}    detail: problem, evidence, saving/risk/
+                                 confidence/effort, approval state
+POST /api/recommendations/run    re-run the rules (writes this app's DB only)
+POST /api/recommendations/{id}/approve|reject   human decision
 ```
 
 Phase 2 dashboard:
@@ -126,9 +132,12 @@ Phase 2 dashboard:
                                  vs Utilization chart (cost-in-window vs avg CPU),
                                  per-resource avg/P95/stddev table — evidence
                                  only, no automatic recommendations
+/recommendations                 Recommendations: priority-ranked findings with
+                                 evidence and savings math, filter/sort,
+                                 detail view with human Approve/Reject
 ```
 
-Every dashboard section handles loading / error / empty / success states; Potential Savings is an explicit empty state until the recommendation engine exists. Utilization signals are evidence only — no automatic advice (CLAUDE.md §38). Details: [`docs/dashboard.md`](docs/dashboard.md) · Backend setup & testing: [`docs/local-development.md`](docs/local-development.md) · What the numbers mean: [`docs/cost-model.md`](docs/cost-model.md).
+Every dashboard section handles loading / error / empty / success states; Recommendations are evidence-backed and require human approval; the platform never modifies infrastructure automatically. Utilization signals are evidence only — no automatic advice (CLAUDE.md §38). Details: [`docs/dashboard.md`](docs/dashboard.md) · Backend setup & testing: [`docs/local-development.md`](docs/local-development.md) · What the numbers mean: [`docs/cost-model.md`](docs/cost-model.md).
 
 ## 7. Cost safety
 
@@ -153,7 +162,7 @@ Full policy: [`docs/cost-safety.md`](docs/cost-safety.md).
 cloud-cost-lab/
 ├── apps/
 │   ├── api/            FastAPI backend — Phase 1 IMPLEMENTED (src/, alembic/, tests/)
-│   └── web/            Next.js dashboard — Phase 2–4 IMPLEMENTED (overview, cost explorer, resources, utilization)
+│   └── web/            Next.js dashboard — Phase 2–5 IMPLEMENTED (overview, cost explorer, resources, utilization, recommendations)
 ├── analytics/          cost / utilization / recommendations / forecasting modules
 ├── data/
 │   └── mock/           committed deterministic dataset + generator scenario source

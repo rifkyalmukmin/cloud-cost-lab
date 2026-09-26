@@ -19,6 +19,7 @@ from costlab.db.session import SessionLocal
 from costlab.ingestion.loader import cost_record_count, ingest_snapshot
 from costlab.logging_config import setup_logging
 from costlab.providers import build_providers
+from costlab.recommendations.engine import run_engine
 
 logger = logging.getLogger("costlab.seed")
 
@@ -52,6 +53,10 @@ def main(argv: list[str] | None = None) -> int:
             )
             return 0
         result = ingest_snapshot(session, snapshot, usage_records, replace_facts=existing > 0)
+        session.commit()
+        # Recommendation mode only: writes recommendation rows to THIS database,
+        # never touches cloud infrastructure (CLAUDE.md §38).
+        run_engine(session)
         session.commit()
 
     logger.info(

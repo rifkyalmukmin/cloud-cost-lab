@@ -10,6 +10,7 @@ from costlab.api.errors import install_error_handlers
 from costlab.api.middleware import RequestContextMiddleware
 from costlab.api.routes_cost import router as cost_router
 from costlab.api.routes_health import router as health_router
+from costlab.api.routes_recommendations import router as recommendations_router
 from costlab.api.routes_resources import router as resources_router
 from costlab.api.routes_utilization import router as utilization_router
 from costlab.config import get_settings
@@ -43,6 +44,7 @@ def create_app() -> FastAPI:
     app.include_router(cost_router)
     app.include_router(resources_router)
     app.include_router(utilization_router)
+    app.include_router(recommendations_router)
     return app
 
 

@@ -20,6 +20,7 @@ from sqlalchemy import (
     Numeric,
     String,
     UniqueConstraint,
+    func,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -115,3 +116,54 @@ class ResourceUsage(Base):
     request_count: Mapped[int | None] = mapped_column(BigInteger)
     latency_ms: Mapped[Decimal | None] = mapped_column(Numeric(12, 3))
     error_rate_pct: Mapped[Decimal | None] = mapped_column(Numeric(6, 3))
+
+
+class Recommendation(Base):
+    """One evidence-backed optimization recommendation (Phase 5).
+
+    Rows are produced by the rule engine's run (never by hand) and live
+    through the human approval lifecycle: OPEN -> APPROVED/REJECTED, with
+    IMPLEMENTED/VERIFIED reserved for the savings-tracking phase. Re-runs
+    preserve the status of unchanged (rule_id, scope) recommendations.
+    """
+
+    __tablename__ = "recommendations"
+    __table_args__ = (
+        UniqueConstraint("rule_id", "scope_key", name="uq_recommendations_rule_scope"),
+        Index("ix_recommendations_status_priority", "status", "priority_score"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)  # uuid4 hex
+    rule_id: Mapped[str] = mapped_column(String(64), index=True)
+    # Resource-level recommendations link a resource; project/service-level
+    # ones (e.g. cost anomalies) leave it null and use the scope columns.
+    resource_id: Mapped[str | None] = mapped_column(ForeignKey("resources.resource_id"), index=True)
+    project_id: Mapped[str | None] = mapped_column(String(64), index=True)
+    service_id: Mapped[str | None] = mapped_column(String(64))
+    # Deduplication key across runs: resource_id or "project:service".
+    scope_key: Mapped[str] = mapped_column(String(192))
+
+    title: Mapped[str] = mapped_column(String(256))
+    problem: Mapped[str] = mapped_column(String(512))
+    evidence: Mapped[list[Any]] = mapped_column(JSONB, default=list)
+    recommendation: Mapped[str] = mapped_column(String(1024))
+
+    current_cost: Mapped[Decimal] = mapped_column(Numeric(14, 6), nullable=False)
+    potential_cost: Mapped[Decimal] = mapped_column(Numeric(14, 6), nullable=False)
+    potential_savings: Mapped[Decimal] = mapped_column(Numeric(14, 6), nullable=False)
+    savings_percentage: Mapped[Decimal] = mapped_column(Numeric(6, 2), nullable=False)
+
+    risk: Mapped[str] = mapped_column(String(16))  # LOW | MEDIUM | HIGH
+    confidence: Mapped[str] = mapped_column(String(16))  # HIGH | MEDIUM | LOW
+    effort: Mapped[str] = mapped_column(String(16))  # LOW | MEDIUM | HIGH
+    priority_score: Mapped[Decimal] = mapped_column(Numeric(6, 2))
+    priority: Mapped[str] = mapped_column(String(16))  # HIGH | MEDIUM | LOW
+    approval_required: Mapped[bool] = mapped_column(default=True)
+
+    status: Mapped[str] = mapped_column(String(16), default="OPEN", index=True)
+    window_start: Mapped[date | None] = mapped_column(Date)
+    window_end: Mapped[date | None] = mapped_column(Date)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )

@@ -165,6 +165,7 @@ async function request<T>(
   path: string,
   filters: CostFilters = {},
   extraParams: Record<string, string> = {},
+  method: "GET" | "POST" = "GET",
 ): Promise<T> {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(buildFilterParams(filters))) {
@@ -177,6 +178,7 @@ async function request<T>(
   let response: Response;
   try {
     response = await fetch(`${apiBaseUrl()}${path}${query}`, {
+      method,
       headers: { Accept: "application/json" },
       cache: "no-store",
     });
@@ -218,6 +220,31 @@ export const api = {
     request<UtilizationDetailResponse>(
       `/api/utilization/${encodeURIComponent(resourceId)}`,
       filters,
+    ),
+  listRecommendations: (filters: RecommendationFilters = {}) =>
+    request<RecommendationListResponse>(
+      "/api/recommendations",
+      {},
+      buildRecommendationParams(filters),
+    ),
+  getRecommendation: (id: string) =>
+    request<RecommendationItem>(`/api/recommendations/${encodeURIComponent(id)}`),
+  runRecommendationEngine: () =>
+    // Recommendation mode only: regenerates rows in the backend's own database.
+    request<RecommendationRunResponse>("/api/recommendations/run", {}, {}, "POST"),
+  approveRecommendation: (id: string) =>
+    request<{ id: string; status: string }>(
+      `/api/recommendations/${encodeURIComponent(id)}/approve`,
+      {},
+      {},
+      "POST",
+    ),
+  rejectRecommendation: (id: string) =>
+    request<{ id: string; status: string }>(
+      `/api/recommendations/${encodeURIComponent(id)}/reject`,
+      {},
+      {},
+      "POST",
     ),
 };
 
@@ -407,6 +434,90 @@ function buildUtilizationParams(filters: UtilizationQueryFilters): Record<string
   if (filters.projectId) params["project_id"] = filters.projectId;
   if (filters.service) params["service"] = filters.service;
   if (filters.environment) params["environment"] = filters.environment;
+  if (filters.page) params["page"] = String(filters.page);
+  if (filters.pageSize) params["page_size"] = String(filters.pageSize);
+  return params;
+}
+
+// ---------------------------------------------------------------------------
+// Recommendations (Phase 5) — evidence-backed, human-approved
+// ---------------------------------------------------------------------------
+
+export type RecommendationStatus = "OPEN" | "APPROVED" | "REJECTED" | "IMPLEMENTED" | "VERIFIED";
+
+export interface RecommendationEvidenceItem {
+  statement: string;
+  metric: string | null;
+  value: number | null;
+  threshold: number | null;
+  unit: string | null;
+}
+
+export interface RecommendationItem {
+  id: string;
+  rule_id: string;
+  title: string;
+  resource_id: string | null;
+  resource_label: string;
+  project_id: string | null;
+  service_id: string | null;
+  problem: string;
+  evidence: RecommendationEvidenceItem[];
+  recommendation: string;
+  current_cost: number;
+  potential_cost: number;
+  potential_savings: number;
+  savings_percentage: number;
+  risk: "LOW" | "MEDIUM" | "HIGH";
+  confidence: "HIGH" | "MEDIUM" | "LOW";
+  effort: "LOW" | "MEDIUM" | "HIGH";
+  priority_score: number;
+  priority: "HIGH" | "MEDIUM" | "LOW";
+  approval_required: boolean;
+  status: RecommendationStatus;
+  window: Period | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RecommendationSummary {
+  by_status: Record<RecommendationStatus, number>;
+  open_potential_savings: number;
+}
+
+export interface RecommendationListResponse {
+  summary: RecommendationSummary;
+  pagination: Pagination;
+  items: RecommendationItem[];
+}
+
+export interface RecommendationRunResponse {
+  generated: number;
+  status_preserved: number;
+  removed: number;
+}
+
+export interface RecommendationFilters {
+  status?: RecommendationStatus;
+  ruleId?: string;
+  risk?: "LOW" | "MEDIUM" | "HIGH";
+  priority?: "HIGH" | "MEDIUM" | "LOW";
+  resourceId?: string;
+  projectId?: string;
+  sort?: "priority" | "savings" | "recent";
+  page?: number;
+  pageSize?: number;
+}
+
+function buildRecommendationParams(filters: RecommendationFilters): Record<string, string> {
+  const params: Record<string, string> = {};
+  if (filters.status) params["status"] = filters.status;
+  if (filters.ruleId) params["rule_id"] = filters.ruleId;
+  if (filters.risk) params["risk"] = filters.risk;
+  if (filters.priority) params["priority"] = filters.priority;
+  if (filters.resourceId) params["resource_id"] = filters.resourceId;
+  if (filters.projectId) params["project_id"] = filters.projectId;
+  if (filters.sort) params["sort"] = filters.sort;
   if (filters.page) params["page"] = String(filters.page);
   if (filters.pageSize) params["page_size"] = String(filters.pageSize);
   return params;
