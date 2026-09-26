@@ -1,223 +1,73 @@
-# Cloud Cost Lab
+# Project Roadmap — Cloud Cost Lab
 
-> **GCP FinOps & Cloud Cost Optimization Platform**
-
-Cloud Cost Lab aggregates cloud cost and resource utilization data, detects waste and optimization opportunities, estimates **potential** savings, monitors budgets, forecasts future cost with explicit uncertainty, and produces evidence-based recommendations that require **human approval** before any impactful action.
-
-**Current status: PHASE 9 — GCP Monitoring Integration complete (dormant in demo mode).** Cloud Monitoring feeds real utilization (`GCPMonitoringProvider`) beside the BigQuery billing provider, and monitoring evidence (requests/connections) now strengthens recommendations. BigQuery-backed `GCPBillingProvider` behind the same provider abstraction as the mock (partition-aware, cost-guarded queries, freshness surfacing) — code-complete and tested with stubs; enabling real data is a documented manual step. See [`docs/project-roadmap.md`](docs/project-roadmap.md).
+> Status: living document · Last updated: 2026-09-13
+> Rule: one phase at a time. A phase is never "done" because it compiles — see Definition of Done below.
 
 ---
 
-## 1. Problem
+## 1. Phase overview
 
-Cloud bills are opaque for most engineers. Typical questions that are hard to answer with a cloud console alone:
+| # | Phase | Scope | Status |
+| --- | --- | --- | --- |
+| 0 | Planning & Foundation | Architecture, ADRs, repository structure, cost-safety & security strategy, roadmap | ✅ **Done (this commit)** |
+| 1 | Local Mock Platform | FastAPI + PostgreSQL + Docker Compose + mock dataset, provider abstraction, `/health` | ✅ **Done** |
+| 2 | Cost Explorer | Cost aggregation, WoW/MoM, breakdowns, filters, first dashboard pages | ✅ **Done** |
+| 3 | Resource Inventory | Resources, usage series, cost↔utilization linkage | ✅ **Done** |
+| 4 | Utilization Analysis | Per-metric avg/min/max/P95/stddev, cost-in-window linkage, low/high/unstable/missing evidence | ✅ **Done** |
+| 5 | Recommendation Engine | Idle, oversized, disk, retention, anomaly rules; priority model; approval lifecycle | ✅ **Done** |
+| 6 | Budget & Governance | Budgets with warning/critical thresholds; five advisory policies; PASS/WARNING/VIOLATION | ✅ **Done** |
+| 7 | Forecasting & Anomaly | 30-day forecast (MA + linear trend) with range; rolling-average + z-score anomaly detection | ✅ **Done** |
+| 8 | GCP Billing Integration | BillingDataProvider: BigQuery-backed GCP provider (partition-aware, cost-guarded), freshness, security posture | ✅ **Done (dormant in demo mode)** |
+| 9 | GCP Monitoring Integration | MonitoringDataProvider: Cloud Monitoring metrics, connections metric, evidence-strengthened rules | ✅ **Done (dormant in demo mode)** |
+| 6 | Recommendation Engine | Idle detection, rightsizing, storage rules, lifecycle (OPEN→…→VERIFIED) | ⬜ Pending |
+| 7 | Budget | Budget model, thresholds, projected month-end, budget-risk alerts | ⬜ Pending |
+| 9 | Forecasting | 30-day moving average / linear regression with range | ⬜ Pending |
+| 10 | Anomaly Detection | Rolling average + threshold; z-score later | ⬜ Pending |
+| 11 | Savings Tracking | Potential vs realized savings with verification | ⬜ Pending |
+| 12 | GCP Integration | Billing Export → BigQuery (cost-protected), real providers | ⬜ Pending |
+| 12 | Monitoring / Freshness | Metrics, structured logs, SLOs, STALE/FRESH labelling | ⬜ Pending |
+| 10 | Terraform | IaC: iam/bigquery/storage/compute modules, dev+demo environments, plan-reviewed | ✅ **Done (not applied)** |
+| 14 | Security | Least-privilege IAM, Secret Manager, Gitleaks/Trivy | ⬜ Pending |
+| 15 | CI/CD | GitHub Actions: lint → test → build → security scan → Docker | ⬜ Pending |
+| 16 | FinOps Health Score | Heuristic score: visibility, allocation, optimization, governance, forecasting, automation | ⬜ Pending |
+| 17 | Reports | Daily/weekly/monthly report generation | ⬜ Pending |
+| 18 | AI Advisor | Read-only AI Cloud Cost Advisor with structured context + audit log | ⬜ Pending |
+| 19 | Demo Scenarios | Scripted incidents/scenarios (idle VM, spike, budget risk, …) | ⬜ Pending |
+| 20 | Portfolio Preparation | README polish, screenshots, demo video, CV & interview docs | ⬜ Pending |
 
-- Where did the money actually go this month, and why did it change?
-- Which resources are idle or overprovisioned, and what evidence proves it?
-- How much could be saved — and how much **was actually saved** after an optimization?
-- Will we exceed the budget before the month ends?
-- Which optimization should be done first, and what is the risk?
+Milestone grouping:
 
-Cloud Cost Lab is built to answer these questions with data, not guesses.
+- **Foundation:** 0–1 · **Core product:** 2–12 · **Cloud & hardening:** 13–16 · **FinOps depth & portfolio:** 17–20
 
-## 2. Target users
+## 2. Current phase: PHASE 10 — Terraform (complete, NOT applied)
 
-- **Primary:** the project author — a 4th-semester informatics student building deep, demonstrable skills for Cloud Engineer / DevOps / Infrastructure / SRE / Platform / FinOps careers.
-- **Secondary:** anyone learning FinOps on GCP with a small budget; small teams who want a readable cost-optimization reference implementation.
+> Safety: `terraform plan` was executed read-only (5 to add, 0 change, 0 destroy); **`terraform apply` has never been run**. Activation is an explicit human decision (CLAUDE.md §7, §51).
 
-## 3. Why FinOps
+- Four reusable modules — `iam` (read-only service account, minimal project roles, **no keys**), `bigquery` (billing export dataset, table expiration = retention, dataset-scoped READER grants, destroy guard), `storage` (report bucket: uniform access, public-access-prevention enforced, versioning, lifecycle deletion, destroy guard), `compute` (e2-micro, no public IP, shielded boot, os-login — **deliberately not instantiated**: the platform runs locally).
+- Two thin environments — `dev` (30-day retention) and `demo` (365-day) — pin provider `~> 6.0`, require an explicit `gcp_project_id` (no defaults), carry a commented GCS backend block, and ship `terraform.tfvars.example` while real `.tfvars` is git-ignored.
+- Validation: `terraform fmt -recursive` clean; `terraform validate` passes for both environments; `terraform plan` against the real project via ADC → **5 to add, 0 to change, 0 to destroy** (SA + jobUser role + dataset + bucket + bucket IAM). No `-out` plan kept, no apply.
+- Security: no secrets in code (variables only), `.gitignore` blocks state/`.tfvars`, lock file committed, least-privilege IAM scoped to resources, compute private-by-default.
+- Docs: [`docs/terraform.md`](terraform.md), [`docs/infrastructure-cost.md`](infrastructure-cost.md) (expected ~$0–1/month with the defaults).
 
-FinOps connects engineering decisions (instance types, schedules, retention, labeling) to financial outcomes. Building this project demonstrates: cost visibility, cost allocation, resource efficiency, forecasting, governance, and cost-aware automation — the difference between "deployed something" and "operated it responsibly".
+## 3. Next phase: not started
 
-## 4. Architecture (summary)
+Candidates per the user's sequencing: security hardening, CI/CD, FinOps health score. **Do not start until explicitly instructed.**
 
-```text
-GCP (Billing Export + Monitoring)          ← Phase 9+ / or mock data (default)
-            │
-      Data Collector  (apps/api)           ← provider abstraction: Mock | Real
-            │
-      PostgreSQL (cost database)
-            │
-   Cost Analytics ── Usage Analytics       ← analytics/
-            │
-   Recommendation Engine                   ← rule-based + optional AI layer (read-only)
-            │
-   Next.js Dashboard (apps/web)            ← costs / savings / forecast / budget
-            │
-   Alerts → Human Approval → Optional bounded action
-```
+## 4. Definition of Done (applies to every phase)
 
-Full detail: [`docs/architecture.md`](docs/architecture.md).
+A feature is complete only when:
 
-## 5. Technology stack
+- [ ] code exists and is reviewed;
+- [ ] tests exist for business logic (cost aggregation, WoW/MoM, budget %, forecast, savings math);
+- [ ] validation passes (lint, tests; `terraform fmt/validate/plan` for infra);
+- [ ] documentation exists and matches the implementation;
+- [ ] error handling is explicit;
+- [ ] security implications reviewed (no secrets, least privilege);
+- [ ] cost implications considered (nothing billable created silently);
+- [ ] failure mode considered and documented;
+- [ ] UI/API behavior verified when applicable;
+- [ ] observability added when appropriate.
 
-| Layer | Choice | Rationale |
-| --- | --- | --- |
-| Frontend | Next.js + TypeScript (strict) + Tailwind + shadcn/ui | Dashboard-first, typed data contracts |
-| Backend | FastAPI + Python + Pydantic | Fast to build, validation built-in, great for data work |
-| Database | PostgreSQL | Window functions, JSONB for labels, production-realistic |
-| Analytics | SQL + Python (Pandas only where it clearly helps) | Simple, testable business logic |
-| Cloud | GCP | Author's cloud; Billing Export + Monitoring are first-class |
-| IaC | Terraform | Reproducible, reviewable, destroyable infrastructure |
-| CI/CD | GitHub Actions | Lint, test, build, security scans (Trivy, Gitleaks) |
-| AI | Pluggable LLM provider, **read-only by default** | Analysis/explanation only; no destructive actions |
+## 5. Change process
 
-Trade-offs and rejected alternatives are documented in the [ADRs](docs/decisions/).
-
-## 6. Demo mode (works without GCP)
-
-The platform **must run with zero GCP credentials**:
-
-```text
-DEMO_MODE=true   →   synthetic billing + utilization data (data/mock/)
-```
-
-Mock and real data sources implement the same `BillingDataProvider` interface, so the dashboard and recommendation engine behave identically in both modes. See `docs/decisions/ADR-003-demo-mode.md`.
-
-### Run it locally (Phase 1–9)
-
-```bash
-cp .env.example .env
-docker compose up -d          # postgres + api (migrate + seed happen automatically)
-curl localhost:8000/health    # interactive docs: http://localhost:8000/docs
-
-cd apps/web                   # dashboard (Phase 2)
-npm install
-echo 'NEXT_PUBLIC_API_URL=http://localhost:8000' > .env.local
-npm run dev                   # http://localhost:3000
-```
-
-Phase 1 API (all mock data, paginated, filterable):
-
-```text
-GET /health                      liveness
-GET /ready                       readiness (database check)
-GET /api/cost                    cost records + filtered summary
-GET /api/cost/trend              daily / weekly / monthly buckets
-GET /api/cost/by-service         breakdown with share of total
-GET /api/cost/by-project         breakdown with share of total
-GET /api/cost/by-environment     development / staging / production
-GET /api/resources               resource inventory: filters + pagination,
-                                 monthly cost (trailing 30d) + latest utilization
-GET /api/resources/{id}          detail: cost history + utilization series,
-                                 metadata, ownership, labels
-GET /api/utilization             per-resource metric stats (avg/min/max/P95/
-                                 stddev) + cost over the same window +
-                                 evidence signals (low/high/unstable/missing)
-GET /api/utilization/{id}        one resource: stats + daily series
-GET /api/recommendations         evidence-backed optimization findings
-                                 (filter/sort/paginate) + approval summary
-GET /api/recommendations/{id}    detail: problem, evidence, saving/risk/
-                                 confidence/effort, approval state
-POST /api/recommendations/run    re-run the rules (writes this app's DB only)
-POST /api/recommendations/{id}/approve|reject   human decision
-GET /api/budget                  budgets evaluated against the latest month
-                                 in the data (net MTD, projected run-rate,
-                                 HEALTHY/WARNING/CRITICAL/EXCEEDED)
-POST /api/budget                 create a budget (validated, data-only)
-GET /api/policies                advisory governance policies with findings
-                                 (PASS/WARNING/VIOLATION — no auto-action)
-GET /api/forecast                30-day projection: expected + lower/upper
-                                 bounds + confidence (MA + linear trend)
-GET /api/anomalies               unexpected cost increases vs a 14-day
-                                 rolling baseline (z-score, severity)
-GET /api/freshness               data freshness: FRESH / STALE / UNKNOWN
-                                 with last_updated and data age
-```
-
-Phase 2 dashboard:
-
-```text
-/                                Overview: current/previous month, MoM (MTD), projected
-                                 run-rate (labelled estimate), daily trend,
-                                 cost by service / project / environment
-/cost                            Cost Explorer: filters (date, service, project,
-                                 environment), granularity switch, breakdown tables,
-                                 paginated cost records
-/resources                       Resource Inventory: filters + UNALLOCATED-only
-                                 toggle, server-side pagination, monthly cost,
-                                 CPU / memory meters, potential saving (Phase 4)
-/resources/{id}                  Resource detail: cost history + utilization charts,
-                                 ownership (UNALLOCATED when missing), metadata,
-                                 labels
-/utilization                     Utilization Analysis: evidence summary, Cost
-                                 vs Utilization chart (cost-in-window vs avg CPU),
-                                 per-resource avg/P95/stddev table — evidence
-                                 only, no automatic recommendations
-/recommendations                 Recommendations: priority-ranked findings with
-                                 evidence and savings math, filter/sort,
-                                 detail view with human Approve/Reject
-/budget                          Budgets: status badges, threshold markers,
-                                 projected month-end (estimate), create form
-/policies                        Governance policies: per-policy status and
-                                 findings — advisory only, never automated
-/forecast                        30-day forecast chart (observed → expected
-                                 with range), trend + confidence cards
-/anomalies                       Cost anomalies: severity filter, min z-score,
-                                 actual vs expected with z-score per finding
-```
-
-Every dashboard section handles loading / error / empty / success states; Recommendations are evidence-backed and require human approval; budget thresholds and policy violations only raise alerts — the platform never modifies infrastructure automatically. Utilization signals are evidence only — no automatic advice (CLAUDE.md §38). Details: [`docs/dashboard.md`](docs/dashboard.md) · Backend setup & testing: [`docs/local-development.md`](docs/local-development.md) · What the numbers mean: [`docs/cost-model.md`](docs/cost-model.md).
-
-## 7. Cost safety
-
-**This project must not become an expensive cloud project.** Core rules:
-
-- Mock mode is the default; the BigQuery billing and Cloud Monitoring providers are code-complete but dormant until `DEMO_MODE=false` + the export/monitoring are configured (docs/gcp-setup.md, docs/gcp-monitoring.md).
-- No GCP resource is created without stating: purpose, cost, smallest configuration, shutdown and destroy path.
-- `terraform apply` only after a reviewed plan; BigQuery queries are partition-filtered and column-pruned; budget alerts are configured early.
-- Potential savings are labelled *potential*; savings are called *realized* only after verified post-change data.
-
-Full policy: [`docs/cost-safety.md`](docs/cost-safety.md).
-
-## 8. Security
-
-- Least-privilege, read-only-by-default GCP service accounts (`cost-data-reader`, `monitoring-reader`; a separate `cost-optimizer` only for explicitly bounded actions).
-- No service account keys, credentials, or `.env` files in git — Gitleaks + Trivy in CI (Phase 12–13), Secret Manager / Workload Identity Federation where feasible.
-- AI is read-only and cannot delete resources, modify IAM, or touch Terraform state.
-
-## 9. Repository structure
-
-```text
-cloud-cost-lab/
-├── apps/
-│   ├── api/            FastAPI backend — Phase 1 IMPLEMENTED (src/, alembic/, tests/)
-│   └── web/            Next.js dashboard — Phase 2–7 IMPLEMENTED (overview, cost explorer, resources, utilization, recommendations, budget, policies, forecast, anomalies)
-├── analytics/          cost / utilization / recommendations / forecasting modules
-├── data/
-│   └── mock/           committed deterministic dataset + generator scenario source
-├── terraform/          modules + environments (Phase 11)
-├── monitoring/         SLOs, metrics, alert rules (Phase 10)
-├── scripts/            generate_mock_data.py (deterministic dataset generator)
-├── docs/
-│   ├── architecture.md
-│   ├── cost-model.md           Phase 1: data + cost semantics
-│   ├── dashboard.md            Phase 2: pages, components, states, trade-offs
-│   ├── local-development.md    setup, commands, testing
-│   ├── project-roadmap.md
-│   ├── cost-safety.md
-│   └── decisions/      ADR-001 … ADR-005
-├── .github/workflows/  CI/CD (Phase 13)
-├── docker-compose.yml  postgres + api (Phase 1)
-├── .env.example
-├── .gitignore
-├── CLAUDE.md           project rules
-└── README.md
-```
-
-## 10. Roadmap
-
-18 phases, one step at a time — from local mock platform (Phase 1) through GCP integration, forecasting, FinOps score, AI advisor, and portfolio preparation (Phase 18). Current phase status: [`docs/project-roadmap.md`](docs/project-roadmap.md).
-
-## 11. Limitations (honest)
-
-- Phase 2 delivers the cost engine and read-only dashboard — no recommendations yet (Phase 4), so Potential Savings is an explicit empty state.
-- All data is synthetic (mock provider). Real GCP integration is Phase 9+.
-- MoM Change compares month-to-date vs prior MTD; Projected Month-End is a linear run-rate estimate — both labelled as such in the UI.
-- Single-cloud (GCP) by design for now; multi-cloud is a future extension via the provider abstraction.
-- Forecasting proper (with ranges) arrives in Phase 6; the dashboard's projection is a simple heuristic.
-- Recommendations are heuristics with evidence and confidence levels — not guarantees.
-
-## 12. Future work
-
-Realized-savings verification loop, unit economics (cost per request/user), what-if cost simulator, policy engine expansion, multi-cloud providers, and richer AI-assisted root-cause analysis — each introduced only in its planned phase.
+New major technology or architecture change requires a new ADR in `docs/decisions/` answering: What? Why? Alternative? Trade-off? Failure mode? Security? Cost?

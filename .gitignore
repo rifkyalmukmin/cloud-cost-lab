@@ -57,3 +57,11 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+
+# --- Terraform (Phase 10) ------------------------------------------
+.terraform/
+.terraform.tfstate.lock.info
+*.tfstate
+*.tfstate.backup
+*.tfvars
+!*.tfvars.example
