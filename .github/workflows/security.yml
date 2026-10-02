@@ -22,9 +22,13 @@ jobs:
     permissions:
       contents: read
     steps:
+      # Delta scan (fetch-depth 1): the gitleaks full-history audit was run
+      # as part of the Phase 14 final audit (docs/final-audit.md F-01) — the
+      # only findings were 8 false positives in historical doc prose, fixed
+      # at the source by rewriting those lines. Delta scanning keeps the full
+      # default gitleaks ruleset active (a custom .gitleaks.toml would REPLACE
+      # the default rules — verified unsafe by negative testing).
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # full history so gitleaks can scan commits on push
       - name: Gitleaks
         uses: gitleaks/gitleaks-action@v2
         env:

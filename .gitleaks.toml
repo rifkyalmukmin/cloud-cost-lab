@@ -1,9 +1,0 @@
-# Gitleaks configuration — allowlist for documented false positives.
-# Everything else still fails the scan.
-
-[allowlist]
-description = "Documentation phrases that trigger the generic-api-key heuristic"
-# "Secret Manager," / "Secrets" appear in prose (roadmap tables, README);
-# they are product names, not credentials.
-paths = ['''(?i)(README\.md|docs/project-roadmap\.md)$''']
-regexes = ['''(?i)secret[s]?\s*manager,?''']

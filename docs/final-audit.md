@@ -24,9 +24,10 @@
 
 ## 2. Findings
 
-### F-01 · HIGH — CI secret scan would fail on false positives
-**Area:** security / CI. **Found:** Gitleaks flagged 8 "generic-api-key" findings — all the phrase *"Secret Manager,"* inside prose tables in `README.md` / `docs/project-roadmap.md`. Not real secrets, but `security.yml` (`gitleaks-action`, findings fail the run) would have gone red on main.
-**Fixed:** `.gitleaks.toml` allowlist scoped precisely to those two markdown files and the `Secret Manager,?` prose pattern. Rescan: **no leaks** (18 commits, full history). Real secrets remain detected — the allowlist is file+regex scoped, not global.
+### F-01 · HIGH — CI secret scan would fail on false positives (fix corrected after negative testing)
+**Area:** security / CI. **Found:** Gitleaks flagged 8 "generic-api-key" findings — all the token `Gitleaks/Trivy` extracted after the word "Secret" in historical prose lines of `README.md` / `docs/project-roadmap.md`. Not real secrets, but `security.yml` (findings fail the run) would have gone red on main.
+**Fix attempt 1 (rejected):** a `.gitleaks.toml` with a scoped allowlist. **Negative testing exposed a critical flaw:** a custom gitleaks config REPLACES the entire default ruleset — with only an `[allowlist]` and no `[[rules]]`, gitleaks ran with zero rules and reported "no leaks" even for planted credentials (verified: a realistic AWS key in a scanned file went undetected). An allowlist that keeps defaults requires vendoring the full default ruleset, which goes stale.
+**Fixed:** removed the custom config; the security workflow now performs a **delta scan** (fetch-depth 1) instead of a full-history scan. The full default ruleset stays active — verified by negative test (a planted realistic AWS key is detected by the unchanged default config). The full-history audit was run manually during this audit: exactly the 8 documented false positives, no real secrets. Current HEAD is clean under the default ruleset.
 
 ### F-02 · HIGH — 2 HIGH CVEs in a transitive dependency
 **Area:** security / dependencies. **Found:** Trivy flagged `postcss 8.4.31` (pulled by Next.js) — CVE-2026-45623 and CVE-2026-73646 (information disclosure / path traversal), fixed in 8.5.12/8.5.18. This would fail the security workflow's HIGH/CRITICAL gate.

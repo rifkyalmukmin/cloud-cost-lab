@@ -11,7 +11,7 @@
 | --- | --- |
 | Testing | 198 backend tests (pytest + real PostgreSQL test DB), 8 frontend tests, boundary/honesty coverage, CI-enforced |
 | Static analysis | ruff + ESLint clean; **mypy strict: 0 issues**; tsc strict clean |
-| CI/CD | GitHub Actions: lint/test/typecheck/build, Gitleaks, Trivy (HIGH/CRITICAL gate), multi-arch non-root Docker to GHCR; no auto-deploy |
+| CI/CD | GitHub Actions: lint/test/typecheck/build, Gitleaks (delta scan), Trivy (HIGH/CRITICAL gate), multi-arch non-root Docker to GHCR; no auto-deploy |
 | Security | no secrets in history (gitleaks full scan), least-privilege IAM design, dependency patching enforced via overrides, prompt-injection refusal |
 | Observability | 7+ Prometheus metrics, SLIs/SLOs endpoint, alerts with runbook links, structured JSON logs with request-id correlation |
 | Reliability | SLO targets defined (99.5% / 24h / 99%), 5 incident documents with exercised MTTD/MTTR, per-alert runbook |
