@@ -31,7 +31,10 @@ If any answer is unknown, the resource is not created yet.
 - `terraform apply` only after a reviewed plan. Never silently create expensive infrastructure.
 - Every module documents its `terraform destroy` path.
 - Prefer small resources, limited retention, and scheduled shutdown (e.g., dev compute off at night/weekends).
-- State files never contain secrets; state backend access is least-privilege.
+- Terraform state can contain sensitive values, so it is never committed and the
+  state backend (a private, versioned GCS bucket) is accessed with least privilege.
+  The state bucket itself is a tiny but billable resource; it is documented in
+  `terraform/README.md` (bootstrap, cost, destroy order).
 
 ## 4. BigQuery cost protection (Phase 9+)
 
@@ -67,6 +70,12 @@ Billing Export tables are large. Rules:
 - Commit service account keys, credentials, or real `.env` files.
 - Present uncertain forecasts as exact numbers, or potential savings as guaranteed/realized.
 - Leave billable resources running without a documented shutdown path.
+
+## 8a. Security scan note
+
+The CI Trivy gates run with `ignore-unfixed: true` (fixable HIGH/CRITICAL fail
+the build; unfixed ones are hidden). Rationale, risk, compensating controls and
+removal criteria are in [`security.md`](security.md#2-trivy-and-ignore-unfixed-true).
 
 ## 9. Per-phase safety checklist
 

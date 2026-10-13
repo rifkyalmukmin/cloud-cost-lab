@@ -138,7 +138,7 @@ Least privilege with separated read-only identities (`cost-data-reader`, `monito
 
 ## 10. Observability (planned)
 
-Structured JSON logs (timestamp/level/service/operation/duration_ms); metrics `http_requests_total`, `http_request_duration_seconds`, `cost_records_processed_total`, `recommendations_generated_total`, `forecast_runs_total`, `billing_query_duration_seconds`; SLOs on API availability, data freshness (<24h, else `STALE`), pipeline success. Data quality score tracks missing labels, missing resource IDs, duplicates, malformed and stale records.
+Structured JSON logs (timestamp/level/service/operation/duration_ms); metrics `http_requests_total`, `http_request_duration_seconds`, `billing_records_processed_total`, `billing_data_freshness_seconds`, `recommendations_generated_total`, `forecast_runs_total`, `bigquery_query_duration_seconds`; SLOs on API availability, data freshness (<24h, else `STALE`), pipeline success. Data quality score tracks missing labels, missing resource IDs, duplicates, malformed and stale records.
 
 ## 11. Trade-offs and failure modes
 

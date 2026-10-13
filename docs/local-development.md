@@ -27,6 +27,20 @@ The `api` container automatically runs migrations (`alembic upgrade head`), seed
 
 > Port conflict? If another local project already uses 5432/8000, set `POSTGRES_PORT` / `API_PORT` in `.env` — the compose file maps them to the *host* side only; container-internal ports stay fixed.
 
+### Building the API image
+
+`docker compose up` builds `apps/api/Dockerfile` for you. To build it by hand
+(from the repository root, because the context includes `data/mock`):
+
+```bash
+DOCKER_BUILDKIT=1 docker build -f apps/api/Dockerfile -t cloud-cost-lab-api .
+```
+
+The Dockerfile is multi-stage and uses a BuildKit cache mount for pip (BuildKit
+is the default builder in current Docker/OrbStack); the first build downloads
+dependencies, later ones reuse the cache. `.dockerignore` keeps `.env`, the web
+app, docs and Terraform files out of the build context.
+
 ## 3. Quick start (host-run API, hot reload)
 
 Keep only postgres in Docker, run the API on your host:
