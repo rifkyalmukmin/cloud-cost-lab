@@ -22,6 +22,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session as OrmSession
 
 from costlab.analytics.savings import compute_realized_savings, savings_summary
+from costlab.api.auth import WritePrincipal
 from costlab.api.deps import SessionDep
 from costlab.db.models import AuditLog, Recommendation, Resource
 from costlab.governance.audit import record_audit
@@ -256,7 +257,7 @@ def get_recommendation(session: SessionDep, recommendation_id: str) -> Recommend
 
 
 @router.post("/run", response_model=RunResponse)
-def run(session: SessionDep) -> RunResponse:
+def run(session: SessionDep, _principal: WritePrincipal) -> RunResponse:
     """Re-run the rule engine over the current data.
 
     Recommendation mode only: creates/updates rows in this application's
@@ -290,6 +291,7 @@ def _transition(
     recommendation_id: str,
     target: str,
     *,
+    actor: str,
     extra_details: dict[str, Any] | None = None,
 ) -> Recommendation:
     row = _get_row_or_404(session, recommendation_id)
@@ -310,21 +312,26 @@ def _transition(
         entity_type="recommendation",
         entity_id=row.id,
         details={"from": previous_status, "to": target, **(extra_details or {})},
+        actor=actor,
     )
     return row
 
 
 @router.post("/{recommendation_id}/approve", response_model=TransitionResponse)
-def approve(session: SessionDep, recommendation_id: str) -> TransitionResponse:
+def approve(
+    session: SessionDep, recommendation_id: str, principal: WritePrincipal
+) -> TransitionResponse:
     """Human approval — the platform itself never takes the action."""
-    row = _transition(session, recommendation_id, "APPROVED")
+    row = _transition(session, recommendation_id, "APPROVED", actor=principal.name)
     session.commit()
     return TransitionResponse(id=row.id, status=row.status)
 
 
 @router.post("/{recommendation_id}/reject", response_model=TransitionResponse)
-def reject(session: SessionDep, recommendation_id: str) -> TransitionResponse:
-    row = _transition(session, recommendation_id, "REJECTED")
+def reject(
+    session: SessionDep, recommendation_id: str, principal: WritePrincipal
+) -> TransitionResponse:
+    row = _transition(session, recommendation_id, "REJECTED", actor=principal.name)
     session.commit()
     return TransitionResponse(id=row.id, status=row.status)
 
@@ -333,6 +340,7 @@ def reject(session: SessionDep, recommendation_id: str) -> TransitionResponse:
 def implement(
     session: SessionDep,
     recommendation_id: str,
+    principal: WritePrincipal,
     body: ImplementBody | None = None,
 ) -> TransitionResponse:
     """APPROVED -> IMPLEMENTED: the human has performed the change themselves
@@ -341,7 +349,7 @@ def implement(
     row = _get_row_or_404(session, recommendation_id)
     implemented_at = body.implemented_at if body and body.implemented_at else datetime.now(UTC)
     row.implemented_at = implemented_at
-    row = _transition(session, recommendation_id, "IMPLEMENTED")
+    row = _transition(session, recommendation_id, "IMPLEMENTED", actor=principal.name)
     session.commit()
     return TransitionResponse(id=row.id, status=row.status)
 
@@ -350,6 +358,7 @@ def implement(
 def verify(
     session: SessionDep,
     recommendation_id: str,
+    principal: WritePrincipal,
     body: VerifyBody | None = None,
 ) -> VerificationResponse:
     """IMPLEMENTED -> VERIFIED: compare actual before/after cost.
@@ -405,6 +414,7 @@ def verify(
             "after_days": result.after_days,
             "realized_savings": result.realized_savings,
         },
+        actor=principal.name,
     )
     session.commit()
     return VerificationResponse(

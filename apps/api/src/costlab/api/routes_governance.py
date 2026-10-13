@@ -1,7 +1,7 @@
 """Budget + policy endpoints (Phase 6).
 
 GET  /api/budget     evaluated budgets (status derived from current spend)
-POST /api/budget     create a budget (validated; a data-only operation)
+POST /api/budget     create a budget (API key required; audited; data-only)
 GET  /api/policies   advisory policy evaluation (PASS/WARNING/VIOLATION)
 
 None of these endpoints can modify cloud infrastructure — budgets and
@@ -18,9 +18,11 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session as OrmSession
 
 from costlab.analytics.budget import budget_window, evaluate_budget, list_budgets
+from costlab.api.auth import WritePrincipal
 from costlab.db.models import Budget
 from costlab.db.session import get_session
 from costlab.governance import evaluate_policies
+from costlab.governance.audit import record_audit
 from costlab.schemas.governance import (
     BudgetCreate,
     BudgetListResponse,
@@ -66,7 +68,9 @@ def get_budgets(session: OrmSession = SessionDep) -> BudgetListResponse:
 
 
 @router_budget.post("", response_model=BudgetOut, status_code=201)
-def create_budget(body: BudgetCreate, session: OrmSession = SessionDep) -> BudgetOut:
+def create_budget(
+    body: BudgetCreate, principal: WritePrincipal, session: OrmSession = SessionDep
+) -> BudgetOut:
     """Create a budget. Data-only operation: writes a row to this database."""
     budget = Budget(
         id=uuid4().hex,
@@ -79,6 +83,14 @@ def create_budget(body: BudgetCreate, session: OrmSession = SessionDep) -> Budge
         critical_threshold=body.critical_threshold,
     )
     session.add(budget)
+    record_audit(
+        session,
+        action="created",
+        entity_type="budget",
+        entity_id=budget.id,
+        details={"name": budget.name, "scope_type": budget.scope_type, "limit": str(body.limit)},
+        actor=principal.name,
+    )
     session.commit()
     return _to_out(evaluate_budget(session, budget))
 

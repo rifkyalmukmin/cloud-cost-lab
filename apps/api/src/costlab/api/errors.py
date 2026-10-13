@@ -65,6 +65,7 @@ def install_error_handlers(app: FastAPI) -> None:
         return JSONResponse(
             status_code=exc.status_code,
             content=_error_body("http_error", str(exc.detail), _request_id(request)),
+            headers=exc.headers,  # e.g. WWW-Authenticate on 401
         )
 
     @app.exception_handler(Exception)

@@ -74,10 +74,13 @@ Runs with **zero GCP credentials**:
 
 ```bash
 cp .env.example .env
+echo "API_KEYS=me:$(openssl rand -hex 24)" >> .env   # write actions need a key (see Security)
 docker compose up -d                # postgres + api (migrate + seed automatic)
 cd apps/web && npm ci && npm run dev
 # → http://localhost:3000  (demo dataset: 12 resources, 97 days, ~$170 total)
 ```
+
+Reading is open. To approve/reject/run/create from the dashboard, click **API key** in the header and paste the value after `me:` (kept in the tab's sessionStorage only).
 
 The API exposes 20+ documented endpoints (`/docs` for OpenAPI). Full list in [`docs/architecture.md`](docs/architecture.md).
 
@@ -116,6 +119,7 @@ The recommendation engine (Phase 5) turns measured evidence into prioritized fin
 ## 9. Security
 
 - **Least privilege** — read-only `cost-data-reader` identity; project IAM limited to `bigquery.jobUser`; dataset/bucket-scoped grants only.
+- **Authenticated writes** — every state-changing endpoint requires an `X-API-Key` (`API_KEYS=name:key,…`); the key's name is the audit-log actor. No keys configured = writes rejected (fail closed). Keys are compared in constant time; a test fails if a new write route lacks the dependency. Single role for now (no RBAC); the advisor `POST` is read-only and stays open.
 - **No secrets in git** — env vars + Secret Manager; `.gitignore` blocks key files; Gitleaks scans every push; Trivy scans code and images (HIGH/CRITICAL fail CI).
 - **WIF preferred** over service-account keys for deployment.
 - **Prompt-injection defence** in the AI advisor: questions are untrusted data — sanitized, length-capped, screened for instruction-override markers, and refused.

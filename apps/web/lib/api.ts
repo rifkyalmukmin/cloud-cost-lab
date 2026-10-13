@@ -6,6 +6,8 @@
  * `.env.example`); nothing else is hardcoded.
  */
 
+import { getApiKey } from "@/lib/api-key";
+
 export type Environment = "development" | "staging" | "production" | "UNALLOCATED";
 export type Granularity = "day" | "week" | "month";
 
@@ -176,14 +178,16 @@ async function request<T>(
     params.set(key, value);
   }
   const query = params.size ? `?${params.toString()}` : "";
+  const headers: Record<string, string> = { Accept: "application/json" };
+  if (jsonBody !== undefined) headers["Content-Type"] = "application/json";
+  // Only state-changing calls carry the key; reads stay credential-free.
+  const apiKey = method === "GET" ? null : getApiKey();
+  if (apiKey) headers["X-API-Key"] = apiKey;
   let response: Response;
   try {
     response = await fetch(`${apiBaseUrl()}${path}${query}`, {
       method,
-      headers: jsonBody === undefined ? { Accept: "application/json" } : {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
+      headers,
       body: jsonBody === undefined ? undefined : JSON.stringify(jsonBody),
       cache: "no-store",
     });
@@ -200,6 +204,9 @@ async function request<T>(
       requestId = body.error?.request_id ?? null;
     } catch {
       // non-JSON error body — keep the generic message
+    }
+    if (response.status === 401) {
+      message = "This action needs an API key. Enter yours with the \"API key\" button in the header.";
     }
     throw new ApiError(response.status, message, requestId);
   }

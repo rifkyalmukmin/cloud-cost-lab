@@ -229,7 +229,7 @@ def test_audit_log_records_every_transition(client: TestClient, db_session) -> N
     # entries must sit on top, newest first
     assert actions[:3] == ["verified", "implemented", "approved"]
     for item in logs["items"]:
-        assert item["actor"] == "local-user"
+        assert item["actor"] == "test-actor"  # API-key identity from conftest
         assert item["entity_type"] == "recommendation"
         assert item["details"].get("from")
     # append-only spot check: ids strictly decrease with age

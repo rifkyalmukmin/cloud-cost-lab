@@ -8,10 +8,42 @@ setup, and it is not a secret.
 
 from __future__ import annotations
 
+import re
 from functools import lru_cache
 from urllib.parse import quote_plus
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+API_KEY_MIN_LENGTH = 16
+_API_KEY_NAME = re.compile(r"^[A-Za-z0-9._-]{1,64}$")  # audit_logs.actor is VARCHAR(64)
+
+
+def parse_api_keys(raw: str) -> dict[str, str]:
+    """Parse `name:key,name:key` into {key: name}. Raises ValueError when malformed.
+
+    Misconfiguration must fail at startup, not silently leave writes open or
+    attribute them to the wrong person.
+    """
+    keys: dict[str, str] = {}
+    names: set[str] = set()
+    for entry in (part.strip() for part in raw.split(",")):
+        if not entry:
+            continue
+        name, sep, key = entry.partition(":")
+        if not sep or not _API_KEY_NAME.match(name):
+            raise ValueError(
+                "API_KEYS entries must look like name:key (name = [A-Za-z0-9._-]{1,64})."
+            )
+        if len(key) < API_KEY_MIN_LENGTH:
+            raise ValueError(
+                f"API key for {name!r} must be at least {API_KEY_MIN_LENGTH} characters."
+            )
+        if key in keys or name in names:
+            raise ValueError(f"API_KEYS contains a duplicate name or key ({name!r}).")
+        keys[key] = name
+        names.add(name)
+    return keys
 
 
 class Settings(BaseSettings):
@@ -50,6 +82,22 @@ class Settings(BaseSettings):
     gcp_monitoring_max_age_days: int = 7
     # Billing data freshness: max acceptable age of the newest data day (§41)
     freshness_max_hours: int = 48
+
+    # --- write-endpoint authentication ---------------------------------
+    # `name:key,name:key`. The name becomes the audit-log actor. Empty = every
+    # write endpoint refuses (fail closed). Generate keys: openssl rand -hex 24
+    api_keys: str = ""
+
+    @field_validator("api_keys")
+    @classmethod
+    def _validate_api_keys(cls, value: str) -> str:
+        parse_api_keys(value)
+        return value
+
+    @property
+    def api_key_identities(self) -> dict[str, str]:
+        """Configured credentials as {key: identity name}."""
+        return parse_api_keys(self.api_keys)
 
     # --- api ---
     api_host: str = "0.0.0.0"

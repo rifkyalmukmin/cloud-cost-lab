@@ -38,6 +38,10 @@ _load_repo_root_env()
 # The default mock_data_dir is CWD-relative ("data/mock"); anchor it to the
 # repository so pytest works from any directory (e.g. apps/api).
 os.environ.setdefault("MOCK_DATA_DIR", str(MOCK_DATA_DIR))
+# The suite owns its credentials: override anything from a developer's .env.
+TEST_API_KEY = "test-key-0123456789abcdef"
+TEST_ACTOR = "test-actor"
+os.environ["API_KEYS"] = f"{TEST_ACTOR}:{TEST_API_KEY}"
 
 import pytest  # noqa: E402
 from alembic import command as alembic_command  # noqa: E402
@@ -128,5 +132,13 @@ def app(session_factory: sessionmaker):
 
 @pytest.fixture()
 def client(app) -> TestClient:
+    """Authenticated client (sends the test API key on every request)."""
+    with TestClient(app, headers={"X-API-Key": TEST_API_KEY}) as test_client:
+        yield test_client
+
+
+@pytest.fixture()
+def anon_client(app) -> TestClient:
+    """Client without credentials, for asserting that writes are refused."""
     with TestClient(app) as test_client:
         yield test_client

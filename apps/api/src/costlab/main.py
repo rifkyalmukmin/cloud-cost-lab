@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -19,10 +21,15 @@ from costlab.api.routes_utilization import router as utilization_router
 from costlab.config import get_settings
 from costlab.logging_config import setup_logging
 
+logger = logging.getLogger(__name__)
+
 
 def create_app() -> FastAPI:
     settings = get_settings()
     setup_logging(settings.log_level)
+
+    if not settings.api_key_identities:
+        logger.warning("API_KEYS is empty: every write endpoint will reject requests")
 
     app = FastAPI(
         title="Cloud Cost Lab API",
@@ -39,7 +46,7 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=settings.cors_origin_list,
         allow_methods=["GET", "POST"],
-        allow_headers=["Accept"],
+        allow_headers=["Accept", "X-API-Key"],
         allow_credentials=False,
     )
     app.add_middleware(RequestContextMiddleware)

@@ -15,8 +15,8 @@ def record_audit(
     action: str,
     entity_type: str,
     entity_id: str,
+    actor: str,
     details: dict[str, Any] | None = None,
-    actor: str = "local-user",
     request_id: str | None = None,
 ) -> None:
     """Append one audit row. The application never updates or deletes these."""
