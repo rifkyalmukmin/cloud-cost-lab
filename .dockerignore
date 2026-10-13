@@ -1,5 +1,27 @@
-# Docker build context filter (repo-root context for apps/api/Dockerfile).
+# Docker build context filter. The context is the REPOSITORY ROOT
+# (docker build -f apps/api/Dockerfile .), so anything not listed here is sent
+# to the Docker daemon. Keep the context small and free of secrets.
+#
+# The API image needs only: apps/api/{pyproject.toml,README.md,src,alembic,
+# alembic.ini,entrypoint.sh} and data/mock.
+
+# --- VCS / editor ---
 .git/
+.github/
+.idea/
+.vscode/
+.DS_Store
+
+# --- Secrets and local configuration (never part of an image) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*credentials*.json
+*service-account*.json
+
+# --- Python artifacts ---
 .venv/
 venv/
 **/__pycache__/
@@ -7,5 +29,21 @@ venv/
 **/.pytest_cache/
 **/.mypy_cache/
 **/.ruff_cache/
+**/*.egg-info/
 apps/api/tests/
-.env
+
+# --- Not needed by the API image ---
+apps/web/
+docs/
+monitoring/
+analytics/
+scripts/
+terraform/
+**/node_modules/
+**/.next/
+
+# --- Terraform local state / variables (can contain sensitive data) ---
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars

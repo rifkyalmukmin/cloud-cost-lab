@@ -1,0 +1,13 @@
+# Partial backend configuration for the GCS state backend.
+#   cp backend.hcl.example backend.hcl      # backend.hcl is git-ignored
+#   terraform init -backend-config=backend.hcl
+#
+# The bucket is created once, OUTSIDE this configuration, so that its own
+# lifecycle never depends on the state it stores. See terraform/README.md
+# ("Remote state") for the bootstrap commands, IAM and cost notes.
+
+# Name of the pre-created state bucket (globally unique).
+bucket = "your-state-bucket-name"
+
+# One prefix per environment keeps states separate within the same bucket.
+prefix = "cloud-cost-lab/dev"

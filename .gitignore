@@ -40,6 +40,14 @@ yarn-error.log*
 *.tfvars
 !*.tfvars.example
 crash.log
+# Backend configuration (bucket name) is supplied locally; only the
+# *.hcl.example templates are committed. NOTE: do not ignore *.hcl in general —
+# .terraform.lock.hcl must stay tracked.
+backend.hcl
+*.backend.hcl
+# Local-only experiments (e.g. backend_override.tf with a local backend).
+override.tf
+*_override.tf
 
 # --- Local data artifacts (never commit generated dumps) ---
 *.sqlite3
