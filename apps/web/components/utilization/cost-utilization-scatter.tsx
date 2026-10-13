@@ -6,21 +6,46 @@ import { formatUsd } from "@/lib/format";
 import { signalColor } from "@/components/utilization/signal-ui";
 import { CartesianGrid, Cell, ReferenceLine, Scatter, ScatterChart, XAxis, YAxis, ZAxis } from "recharts";
 
-/** Cost vs Utilization: one bubble per resource — cost over the analysis
- * window (y) vs average CPU (x). Bubble color carries the evidence signal.
- * Resources without CPU or cost samples do not plot (they remain in the
- * table with their missing-metrics list). */
-export function CostUtilizationScatter({ items }: { items: UtilizationItem[] }) {
-  const points = items
+/** Items that can be plotted: both average CPU and cost in the window exist. */
+function scatterPoints(items: UtilizationItem[]) {
+  return items
     .filter((item) => item.avg_cpu !== null && item.cost_in_window !== null)
     .map((item) => ({
+      item,
       resource_id: item.resource_id,
       resource_name: item.resource_name,
       environment: item.environment,
       avg_cpu: item.avg_cpu as number,
       cost: item.cost_in_window as number,
-      color: signalColor(item),
     }));
+}
+
+/** Text alternative for the scatter: counts, ranges and the extremes. */
+export function describeScatter(items: UtilizationItem[]): string | null {
+  const points = scatterPoints(items);
+  if (points.length === 0) return null;
+  const byCost = [...points].sort((a, b) => b.cost - a.cost);
+  const byCpu = [...points].sort((a, b) => a.avg_cpu - b.avg_cpu);
+  const highestCost = byCost[0];
+  const lowestCpu = byCpu[0];
+  const highestCpu = byCpu[byCpu.length - 1];
+  const unplotted = items.length - points.length;
+  return [
+    `${points.length} of ${items.length} resources plotted.`,
+    `Average CPU ranges from ${lowestCpu.avg_cpu.toFixed(1)}% (${lowestCpu.resource_name}) to ${highestCpu.avg_cpu.toFixed(1)}% (${highestCpu.resource_name}).`,
+    `Highest cost in the window: ${highestCost.resource_name}, ${formatUsd(highestCost.cost)} at ${highestCost.avg_cpu.toFixed(1)}% average CPU.`,
+    unplotted > 0 ? `${unplotted} resources without CPU or cost samples are not plotted.` : null,
+  ]
+    .filter((part): part is string => part !== null)
+    .join(" ");
+}
+
+/** Cost vs Utilization: one bubble per resource — cost over the analysis
+ * window (y) vs average CPU (x). Bubble color carries the evidence signal.
+ * Resources without CPU or cost samples do not plot (they remain in the
+ * table with their missing-metrics list). */
+export function CostUtilizationScatter({ items }: { items: UtilizationItem[] }) {
+  const points = scatterPoints(items).map((point) => ({ ...point, color: signalColor(point.item) }));
 
   // The high-CPU reference line must always be on screen, so the domain grows
   // beyond 80% when the data does — never silently cropped.

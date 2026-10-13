@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
+import { Providers } from "@/components/providers";
 import { SiteHeader } from "@/components/site-header";
 
 import "./globals.css";
@@ -32,8 +33,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body className="flex min-h-screen flex-col antialiased">
-        <SiteHeader />
-        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">{children}</main>
+        <Providers>
+          <SiteHeader />
+          <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">{children}</main>
+        </Providers>
         <footer className="border-t">
           <div className="mx-auto max-w-7xl px-4 py-3 text-xs text-muted-foreground sm:px-6">
             All figures come from the Cloud Cost Lab API and are synthetic demo data (

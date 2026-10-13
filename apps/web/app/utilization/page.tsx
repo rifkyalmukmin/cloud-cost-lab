@@ -5,7 +5,7 @@ import { useState } from "react";
 
 import { TableCard, ChartCard } from "@/components/data-state";
 import { EnvironmentBadge } from "@/components/cost/environment-badge";
-import { CostUtilizationScatter } from "@/components/utilization/cost-utilization-scatter";
+import { CostUtilizationScatter, describeScatter } from "@/components/utilization/cost-utilization-scatter";
 import { SignalBadges } from "@/components/utilization/signal-ui";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -178,12 +178,16 @@ export default function UtilizationPage() {
         state={utilization}
         isEmpty={(utilization.data?.items.length ?? 0) === 0}
         emptyMessage="No resources match the filters"
+        chartLabel="Scatter chart of cost versus average CPU utilization, one point per resource"
+        summary={describeScatter(utilization.data?.items ?? [])}
+        note={
+          <p className="mt-2 text-xs text-muted-foreground">
+            amber = low · red = high · purple = unstable · green = within band · resources without CPU samples
+            plot nothing here and stay visible in the table
+          </p>
+        }
       >
         <CostUtilizationScatter items={utilization.data?.items ?? []} />
-        <p className="mt-2 text-xs text-muted-foreground">
-          amber = low · red = high · purple = unstable · green = within band · resources without CPU samples
-          plot nothing here and stay visible in the table
-        </p>
       </ChartCard>
 
       {/* Per-resource stats */}

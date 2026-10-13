@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
@@ -18,10 +19,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useApi } from "@/hooks/use-api";
 import { api } from "@/lib/api";
 import { formatUsd } from "@/lib/format";
+import { queryKeys } from "@/lib/query-keys";
 
 export default function RecommendationDetailPage() {
   const params = useParams<{ id: string }>();
   const id = decodeURIComponent(typeof params.id === "string" ? params.id : "");
+  const queryClient = useQueryClient();
   const detail = useApi(() => api.getRecommendation(id), [id]);
   const [decisionError, setDecisionError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -38,6 +41,8 @@ export default function RecommendationDetailPage() {
         await api.rejectRecommendation(id);
       }
       detail.retry();
+      // Overview savings totals depend on recommendation status.
+      void queryClient.invalidateQueries({ queryKey: queryKeys.savings });
     } catch (cause) {
       setDecisionError(cause instanceof Error ? cause.message : "Decision failed");
     } finally {
@@ -55,6 +60,8 @@ export default function RecommendationDetailPage() {
         await api.verifyRecommendation(id);
       }
       detail.retry();
+      // Overview savings totals depend on recommendation status.
+      void queryClient.invalidateQueries({ queryKey: queryKeys.savings });
     } catch (cause) {
       setDecisionError(cause instanceof Error ? cause.message : "Action failed");
     } finally {

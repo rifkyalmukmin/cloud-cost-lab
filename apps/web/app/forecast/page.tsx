@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useApi } from "@/hooks/use-api";
 import { api } from "@/lib/api";
+import { describeSeries } from "@/lib/chart-summary";
 import { formatUsd } from "@/lib/format";
 import {
   Area,
@@ -63,6 +64,24 @@ export default function ForecastPage() {
     }
     return rows;
   }, [data, trend.data]);
+
+  // Text alternative for the chart, from the same rows it plots.
+  const observedSummary = describeSeries(
+    chartData.flatMap((row) => (row.cost === null ? [] : [{ label: row.period, value: row.cost }])),
+    formatUsd,
+    "total",
+  );
+  const forecastSummary = observedSummary
+    ? `Observed net cost: ${observedSummary}${
+        data?.totals
+          ? ` Forecast for the next ${data.horizon_days} days: expected ${formatUsd(
+              data.totals.expected_30d,
+            )}, range ${formatUsd(data.totals.lower_bound_30d)} to ${formatUsd(
+              data.totals.upper_bound_30d,
+            )}${data.confidence ? `, confidence ${data.confidence}` : ""}. This is an estimate.`
+          : ""
+      }`
+    : null;
 
   if (forecast.isLoading) {
     return (
@@ -121,6 +140,16 @@ export default function ForecastPage() {
             state={forecast}
             isEmpty={chartData.length === 0}
             emptyMessage="No data to chart"
+            chartLabel="Daily net cost: observed history and 30-day forecast with interval"
+            summary={forecastSummary}
+            note={
+              <p className="mt-2 text-xs text-muted-foreground">
+                Method: 50/50 blend of the {data.methods?.moving_average?.window_days ?? 14}-day moving
+                average (${data.methods?.moving_average?.level ?? 0}/day) and an OLS linear trend (R²{" "}
+                {data.methods?.linear_trend?.r_squared ?? 0}). This is an ESTIMATE with an explicit
+                range — not a guarantee, not realized savings.
+              </p>
+            }
           >
             <ChartContainer
               config={{
@@ -182,12 +211,6 @@ export default function ForecastPage() {
                 ) : null}
               </ComposedChart>
             </ChartContainer>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Method: 50/50 blend of the {data.methods?.moving_average?.window_days ?? 14}-day moving
-              average (${data.methods?.moving_average?.level ?? 0}/day) and an OLS linear trend (R²{" "}
-              {data.methods?.linear_trend?.r_squared ?? 0}). This is an ESTIMATE with an explicit
-              range — not a guarantee, not realized savings.
-            </p>
           </ChartCard>
         </>
       )}

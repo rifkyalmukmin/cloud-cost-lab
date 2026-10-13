@@ -1,15 +1,17 @@
 "use client";
 
 import { CostSummaryCard } from "@/components/cost/cost-summary-card";
-import { ChartCard } from "@/components/cost/chart-card";
+import { ChartCard } from "@/components/data-state";
 import { CostTrendChart } from "@/components/cost/cost-trend-chart";
 import { EnvironmentCostChart } from "@/components/cost/environment-cost-chart";
 import { ProjectCostChart } from "@/components/cost/project-cost-chart";
 import { ServiceCostChart } from "@/components/cost/service-cost-chart";
-import { useApi } from "@/hooks/use-api";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
+import { describeBreakdown, describeSeries } from "@/lib/chart-summary";
 import { formatDate, formatMonthKey, formatPct, formatShare, formatUsd } from "@/lib/format";
 import { monthlyComparison, lastTwoMonthlyMonths } from "@/lib/metrics";
+import { queryKeys } from "@/lib/query-keys";
 import { Badge } from "@/components/ui/badge";
 
 function changeBadge(changePct: number | null) {
@@ -26,13 +28,13 @@ function changeBadge(changePct: number | null) {
 }
 
 export default function OverviewPage() {
-  const freshness = useApi(() => api.getFreshness(), []);
-  const savings = useApi(() => api.getSavings(), []);
-  const monthly = useApi(() => api.costTrend({}, "month"), []);
-  const daily = useApi(() => api.costTrend({}, "day"), []);
-  const byService = useApi(() => api.costByService({}), []);
-  const byProject = useApi(() => api.costByProject({}), []);
-  const byEnvironment = useApi(() => api.costByEnvironment({}), []);
+  const freshness = useApiQuery(queryKeys.freshness, () => api.getFreshness());
+  const savings = useApiQuery(queryKeys.savings, () => api.getSavings());
+  const monthly = useApiQuery(queryKeys.cost.trend({}, "month"), () => api.costTrend({}, "month"));
+  const daily = useApiQuery(queryKeys.cost.trend({}, "day"), () => api.costTrend({}, "day"));
+  const byService = useApiQuery(queryKeys.cost.byService({}), () => api.costByService({}));
+  const byProject = useApiQuery(queryKeys.cost.byProject({}), () => api.costByProject({}));
+  const byEnvironment = useApiQuery(queryKeys.cost.byEnvironment({}), () => api.costByEnvironment({}));
 
   const comparison =
     monthly.data && daily.data ? monthlyComparison(monthly.data.points, daily.data.points) : null;
@@ -139,6 +141,12 @@ export default function OverviewPage() {
         isEmpty={(daily.data?.points.length ?? 0) === 0}
         emptyMessage="No daily cost data available"
         emptyHint="Seed the demo dataset in the backend, then retry."
+        chartLabel="Daily gross cost trend chart (USD)"
+        summary={describeSeries(
+          (daily.data?.points ?? []).map((p) => ({ label: p.period, value: p.cost })),
+          formatUsd,
+          "total",
+        )}
       >
         {daily.data ? <CostTrendChart points={daily.data.points} /> : null}
       </ChartCard>
@@ -155,6 +163,11 @@ export default function OverviewPage() {
           state={byService}
           isEmpty={(byService.data?.rows.length ?? 0) === 0}
           emptyMessage="No service breakdown available"
+          chartLabel="Cost share by service chart"
+          summary={describeBreakdown(
+            (byService.data?.rows ?? []).map((r) => ({ label: r.service_name, value: r.cost, sharePct: r.share_pct })),
+            formatUsd,
+          )}
         >
           {byService.data ? <ServiceCostChart rows={byService.data.rows} /> : null}
         </ChartCard>
@@ -169,6 +182,11 @@ export default function OverviewPage() {
           state={byProject}
           isEmpty={(byProject.data?.rows.length ?? 0) === 0}
           emptyMessage="No project breakdown available"
+          chartLabel="Cost by project chart"
+          summary={describeBreakdown(
+            (byProject.data?.rows ?? []).map((r) => ({ label: r.project_name, value: r.cost, sharePct: r.share_pct })),
+            formatUsd,
+          )}
         >
           {byProject.data ? <ProjectCostChart rows={byProject.data.rows} /> : null}
         </ChartCard>
@@ -179,6 +197,11 @@ export default function OverviewPage() {
           state={byEnvironment}
           isEmpty={(byEnvironment.data?.rows.length ?? 0) === 0}
           emptyMessage="No environment breakdown available"
+          chartLabel="Cost by environment chart"
+          summary={describeBreakdown(
+            (byEnvironment.data?.rows ?? []).map((r) => ({ label: r.environment, value: r.cost, sharePct: r.share_pct })),
+            formatUsd,
+          )}
         >
           {byEnvironment.data ? <EnvironmentCostChart rows={byEnvironment.data.rows} /> : null}
         </ChartCard>

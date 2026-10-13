@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatUsd } from "@/lib/format";
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 
 /** Shared async-section state consumed by every dashboard card. */
 export interface SectionState {
@@ -43,8 +43,14 @@ export function SectionEmpty({ message, hint }: { message: string; hint?: string
 }
 
 /**
- * Uniform card shell for every data section: title + description, then one of
+ * Uniform card shell for every chart section: title + description, then one of
  * loading / error / empty / success — the four states every section must have.
+ *
+ * Charts are SVG and invisible to screen readers, so the success state is
+ * always wrapped as an image with a short label (`chartLabel`) plus a
+ * visually hidden text alternative computed from the same data (`summary`,
+ * see lib/chart-summary.ts). Extra explanatory text belongs in `note`, which
+ * sits outside the image wrapper and stays readable.
  */
 export function ChartCard({
   title,
@@ -53,6 +59,9 @@ export function ChartCard({
   isEmpty,
   emptyMessage,
   emptyHint,
+  chartLabel,
+  summary,
+  note,
   children,
   action,
 }: {
@@ -62,9 +71,16 @@ export function ChartCard({
   isEmpty: boolean;
   emptyMessage: string;
   emptyHint?: string;
+  /** Short accessible name for the chart, e.g. "Daily cost trend chart". */
+  chartLabel: string;
+  /** Text alternative derived from the data; null while there is no data. */
+  summary: string | null;
+  /** Visible explanatory text rendered below the chart. */
+  note?: ReactNode;
   children: ReactNode;
   action?: ReactNode;
 }) {
+  const summaryId = useId();
   return (
     <Card>
       <CardHeader>
@@ -87,7 +103,17 @@ export function ChartCard({
         ) : isEmpty ? (
           <SectionEmpty message={emptyMessage} hint={emptyHint} />
         ) : (
-          <div className={state.isRefetching ? "opacity-70 transition-opacity" : undefined}>{children}</div>
+          <div className={state.isRefetching ? "opacity-70 transition-opacity" : undefined}>
+            <div role="img" aria-label={chartLabel} aria-describedby={summary ? summaryId : undefined}>
+              {children}
+            </div>
+            {summary ? (
+              <p id={summaryId} className="sr-only">
+                {summary}
+              </p>
+            ) : null}
+            {note}
+          </div>
         )}
       </CardContent>
     </Card>

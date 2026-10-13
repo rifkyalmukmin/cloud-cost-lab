@@ -5,16 +5,16 @@ import { useParams } from "next/navigation";
 
 import { EnvironmentBadge } from "@/components/cost/environment-badge";
 import { CostTrendChart } from "@/components/cost/cost-trend-chart";
-import { ChartCard } from "@/components/cost/chart-card";
 import { OwnershipValue, UnallocatedBadge, UtilizationMeter } from "@/components/resources/resource-ui";
 import { UtilizationChart } from "@/components/resources/utilization-chart";
-import { SectionError } from "@/components/data-state";
+import { ChartCard, SectionError } from "@/components/data-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useApi } from "@/hooks/use-api";
-import { api, type ResourceDetailResponse } from "@/lib/api";
+import { api, type ResourceDetailResponse, type UtilizationPoint } from "@/lib/api";
+import { describeSeries } from "@/lib/chart-summary";
 import { formatDate, formatUsd } from "@/lib/format";
 
 function isNotFound(error: string | null): boolean {
@@ -62,6 +62,20 @@ export default function ResourceDetailPage() {
   }
 
   const unallocated = data.owner === null || data.team === null;
+
+  // Text alternative for the utilization chart; missing samples are skipped, never read as 0.
+  const percent = (value: number) => `${value.toFixed(1)}%`;
+  const metricSeries = (pick: (point: UtilizationPoint) => number | null) =>
+    data.utilization.flatMap((point) => {
+      const value = pick(point);
+      return value === null ? [] : [{ label: point.date, value }];
+    });
+  const cpuSummary = describeSeries(metricSeries((p) => p.cpu_utilization), percent, "average");
+  const memorySummary = describeSeries(metricSeries((p) => p.memory_utilization), percent, "average");
+  const utilizationSummary =
+    [cpuSummary && `CPU: ${cpuSummary}`, memorySummary && `Memory: ${memorySummary}`]
+      .filter((part): part is string => part !== null)
+      .join(" ") || null;
 
   return (
     <div className="space-y-6">
@@ -134,6 +148,12 @@ export default function ResourceDetailPage() {
         state={detail}
         isEmpty={data.cost_history.length === 0}
         emptyMessage="No cost history for this resource"
+        chartLabel="Daily gross cost history chart for this resource"
+        summary={describeSeries(
+          data.cost_history.map((point) => ({ label: point.date, value: point.cost })),
+          formatUsd,
+          "total",
+        )}
       >
         <CostTrendChart
           points={data.cost_history.map((point) => ({
@@ -152,6 +172,8 @@ export default function ResourceDetailPage() {
         state={detail}
         isEmpty={data.utilization.length === 0}
         emptyMessage="No utilization data for this resource"
+        chartLabel="CPU and memory utilization over time chart for this resource"
+        summary={utilizationSummary}
       >
         <UtilizationChart points={data.utilization} />
       </ChartCard>

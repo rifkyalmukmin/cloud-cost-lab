@@ -1,5 +1,6 @@
 "use client";
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -10,6 +11,7 @@ import {
   RuleBadge,
   StatusBadge,
 } from "@/components/recommendations/rec-ui";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -30,6 +32,7 @@ import {
 import { useApi } from "@/hooks/use-api";
 import { api, type RecommendationFilters, type RecommendationItem } from "@/lib/api";
 import { formatUsd } from "@/lib/format";
+import { queryKeys } from "@/lib/query-keys";
 
 const PAGE_SIZES = [10, 25, 50] as const;
 const RULE_OPTIONS = [
@@ -70,7 +73,17 @@ export default function RecommendationsPage() {
     runKey,
   ]);
 
-  const runEngine = useApi(() => api.runRecommendationEngine(), [runKey]);
+  // Write action: regenerates recommendation rows in the backend. It runs only
+  // when the user clicks the button — never on mount.
+  const queryClient = useQueryClient();
+  const runEngine = useMutation({
+    mutationFn: () => api.runRecommendationEngine(),
+    onSuccess: () => {
+      setRunKey((k) => k + 1);
+      // Savings totals on the Overview are derived from these rows.
+      void queryClient.invalidateQueries({ queryKey: queryKeys.savings });
+    },
+  });
 
   const setFilter = (apply: () => void) => {
     apply();
@@ -89,14 +102,44 @@ export default function RecommendationsPage() {
             platform never changes infrastructure automatically.
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={runEngine.isLoading}
-          onClick={() => setRunKey((k) => k + 1)}
-        >
-          {runEngine.isLoading ? "Running…" : "Run analysis"}
-        </Button>
+      </div>
+
+      {/* Explicit write action (needs API key) */}
+      <div className="space-y-3 rounded-lg border p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="max-w-2xl text-sm text-muted-foreground">
+            The list below is read-only. <strong>Run recommendation engine</strong> is a write
+            action: it re-evaluates the rules against current data and regenerates the stored
+            recommendations (existing approve/reject decisions are preserved). It requires an API
+            key — set one with the &quot;API key&quot; button in the header. It never changes cloud
+            resources.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={runEngine.isPending}
+            onClick={() => runEngine.mutate()}
+          >
+            {runEngine.isPending ? "Running…" : "Run recommendation engine"}
+          </Button>
+        </div>
+        <div aria-live="polite">
+          {runEngine.isError ? (
+            <Alert variant="destructive">
+              <AlertTitle>Recommendation engine failed</AlertTitle>
+              <AlertDescription>{runEngine.error.message}</AlertDescription>
+            </Alert>
+          ) : null}
+          {runEngine.isSuccess ? (
+            <Alert>
+              <AlertTitle>Recommendation engine finished</AlertTitle>
+              <AlertDescription>
+                {runEngine.data.generated} generated · {runEngine.data.status_preserved} decisions
+                preserved · {runEngine.data.removed} removed
+              </AlertDescription>
+            </Alert>
+          ) : null}
+        </div>
       </div>
 
       {/* Summary */}

@@ -2,10 +2,9 @@
 
 import { useState } from "react";
 
-import { ChartCard } from "@/components/cost/chart-card";
 import { CostTrendChart } from "@/components/cost/cost-trend-chart";
 import { EnvironmentBadge } from "@/components/cost/environment-badge";
-import { TableCard } from "@/components/data-state";
+import { ChartCard, TableCard } from "@/components/data-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,9 +24,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useApi } from "@/hooks/use-api";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { api, type CostFilters as ApiCostFilters, type Environment, type Granularity } from "@/lib/api";
+import { describeSeries } from "@/lib/chart-summary";
 import { formatDate, formatShare, formatUsd } from "@/lib/format";
+import { queryKeys } from "@/lib/query-keys";
 
 interface ExplorerFilters {
   startDate: string;
@@ -47,7 +48,7 @@ const EMPTY_FILTERS: ExplorerFilters = {
 
 const PAGE_SIZES = [10, 25, 50] as const;
 
-function toApiFilters(filters: ExplorerFilters, page: number, pageSize: number): ApiCostFilters {
+function toApiFilters(filters: ExplorerFilters, page?: number, pageSize?: number): ApiCostFilters {
   return {
     startDate: filters.startDate || undefined,
     endDate: filters.endDate || undefined,
@@ -66,47 +67,25 @@ export default function CostExplorerPage() {
   const [pageSize, setPageSize] = useState<number>(25);
 
   // Filter option sources: the API itself (full-range breakdowns), not hardcoded lists.
-  const serviceOptions = useApi(() => api.costByService({}), []);
-  const projectOptions = useApi(() => api.costByProject({}), []);
+  // Same keys as the Overview page, so the cache is shared between the two.
+  const serviceOptions = useApiQuery(queryKeys.cost.byService({}), () => api.costByService({}));
+  const projectOptions = useApiQuery(queryKeys.cost.byProject({}), () => api.costByProject({}));
 
-  const trend = useApi(() => api.costTrend(toApiFilters(filters, 1, 1), granularity), [
-    filters.startDate,
-    filters.endDate,
-    filters.service,
-    filters.projectId,
-    filters.environment,
-    granularity,
-  ]);
-  const byService = useApi(() => api.costByService(toApiFilters(filters, 1, 1)), [
-    filters.startDate,
-    filters.endDate,
-    filters.service,
-    filters.projectId,
-    filters.environment,
-  ]);
-  const byProject = useApi(() => api.costByProject(toApiFilters(filters, 1, 1)), [
-    filters.startDate,
-    filters.endDate,
-    filters.service,
-    filters.projectId,
-    filters.environment,
-  ]);
-  const byEnvironment = useApi(() => api.costByEnvironment(toApiFilters(filters, 1, 1)), [
-    filters.startDate,
-    filters.endDate,
-    filters.service,
-    filters.projectId,
-    filters.environment,
-  ]);
-  const records = useApi(() => api.listCostRecords(toApiFilters(filters, page, pageSize)), [
-    filters.startDate,
-    filters.endDate,
-    filters.service,
-    filters.projectId,
-    filters.environment,
-    page,
-    pageSize,
-  ]);
+  // Keys contain every fetcher input, so a filter change is a new cache entry.
+  // Only the paginated records query carries page/pageSize.
+  const scope = toApiFilters(filters);
+  const trend = useApiQuery(queryKeys.cost.trend(scope, granularity), () =>
+    api.costTrend(scope, granularity),
+  );
+  const byService = useApiQuery(queryKeys.cost.byService(scope), () => api.costByService(scope));
+  const byProject = useApiQuery(queryKeys.cost.byProject(scope), () => api.costByProject(scope));
+  const byEnvironment = useApiQuery(queryKeys.cost.byEnvironment(scope), () =>
+    api.costByEnvironment(scope),
+  );
+  const pagedScope = toApiFilters(filters, page, pageSize);
+  const records = useApiQuery(queryKeys.cost.records(pagedScope), () =>
+    api.listCostRecords(pagedScope),
+  );
 
   const setFilter = (patch: Partial<typeof EMPTY_FILTERS>) => {
     setFilters((prev) => ({ ...prev, ...patch }));
@@ -207,6 +186,12 @@ export default function CostExplorerPage() {
         isEmpty={(trend.data?.points.length ?? 0) === 0}
         emptyMessage="No cost data for the selected filters"
         emptyHint="Widen the date range or clear a filter."
+        chartLabel={`Cost trend chart, aggregated by ${granularity}`}
+        summary={describeSeries(
+          (trend.data?.points ?? []).map((p) => ({ label: p.period, value: p.cost })),
+          formatUsd,
+          "total",
+        )}
         action={
           <Tabs value={granularity} onValueChange={(value) => setGranularity(value as Granularity)}>
             <TabsList>
