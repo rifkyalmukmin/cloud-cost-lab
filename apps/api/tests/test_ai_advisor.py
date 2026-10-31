@@ -16,6 +16,7 @@ from costlab.ai import MockAdvisorProvider, build_ai_provider
 from costlab.ai.base import (
     ANSWER_SECTIONS,
     SAFETY_STATEMENT,
+    AdvisorContext,
     is_injection_attempt,
     sanitize_question,
 )
@@ -202,6 +203,82 @@ def test_provider_selection_mock_default_and_llm_when_configured() -> None:
 def test_question_max_length_enforced(client: TestClient) -> None:
     response = client.post("/api/ai/advisor", json={"question": "x" * 501})
     assert response.status_code == 422
+
+
+def _context_with(low: list[str], top: list[dict]) -> AdvisorContext:
+    """Focused context for the evidence-matching regression tests."""
+    return AdvisorContext(
+        environment={},
+        cost={},
+        resources={},
+        utilization={
+            "low_utilization": low,
+            "high_utilization": [],
+            "unstable_utilization": [],
+            "no_cpu_data": [],
+        },
+        recommendations={"total": len(top), "top": top},
+        anomalies={"count": 0, "recent": []},
+        forecast={"sufficient_data": False},
+        budget={"budgets": []},
+    )
+
+
+def _rec(resource: str, title: str, savings: float = 3.0) -> dict:
+    return {
+        "id": f"id-{title[:6]}",
+        "rule_id": "idle_compute",
+        "title": title,
+        "resource": resource,
+        "priority_score": 80.0,
+        "potential_savings": savings,
+        "risk": "LOW",
+        "confidence": "HIGH",
+        "status": "OPEN",
+    }
+
+
+def test_which_resource_evidence_lists_only_matching_recommendations() -> None:
+    """Regression (P0): the old `... == target or True` predicate listed
+    EVERY recommendation as 'matching'. Only genuinely linked ones may
+    appear, and the target must be a resource that has both signals."""
+    provider = MockAdvisorProvider()
+    context = _context_with(
+        low=["vm-a", "vm-b"],
+        top=[
+            _rec("vm-b", "Idle compute resource", savings=3.0),
+            _rec("vm-c", "Oversized compute resource", savings=5.0),
+        ],
+    )
+    answer = provider.answer("Which resource should I optimize?", context)
+    assert answer.intent == "which_resource_optimize"
+    # vm-b carries both signals -> it is the target, not vm-a
+    assert "vm-b" in answer.sections["summary"]
+    assert "vm-a" not in answer.sections["summary"]
+    joined = " ".join(answer.sections["evidence"])
+    assert "Idle compute resource" in joined  # the matching one is cited
+    # regression: the unrelated vm-c recommendation must NOT leak into evidence
+    assert "Oversized compute resource" not in joined
+    # potential savings comes from the matching recommendation only
+    assert answer.sections["potential_savings"] == 3.0
+
+
+def test_which_resource_without_linked_recommendation_is_honest() -> None:
+    """When no recommendation targets the low-utilization resource, the
+    evidence says so explicitly instead of listing unrelated findings."""
+    provider = MockAdvisorProvider()
+    context = _context_with(
+        low=["vm-x"],
+        top=[_rec("vm-c", "Oversized compute resource", savings=5.0)],
+    )
+    answer = provider.answer("Which resource should I optimize?", context)
+    assert answer.intent == "which_resource_optimize"
+    assert "vm-x" in answer.sections["summary"]
+    joined = " ".join(answer.sections["evidence"])
+    assert "none linked" in joined
+    assert "Oversized compute resource" not in joined
+    assert answer.sections["potential_savings"] is None
+    assert answer.sections["confidence"] == "LOW"
 
 
 def _empty_context():

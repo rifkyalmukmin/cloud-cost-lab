@@ -172,7 +172,14 @@ def test_reported_actual_is_accepted_but_labelled(client: TestClient, db_session
     client.post("/api/recommendations/run")
     rec_id = _idle_id(client)
     client.post(f"/api/recommendations/{rec_id}/approve")
-    client.post(f"/api/recommendations/{rec_id}/implement")
+    # Backfill the implementation date INTO the data span so the before-window
+    # has evidence — this test exercises the "reported" path, not the wall
+    # clock (a now-implemented rec has no before-data once the dataset ends,
+    # and verify correctly refuses).
+    client.post(
+        f"/api/recommendations/{rec_id}/implement",
+        json={"implemented_at": "2026-08-01T00:00:00Z"},
+    )
 
     response = client.post(f"/api/recommendations/{rec_id}/verify", json={"actual_cost_after": 1.0})
     assert response.status_code == 200

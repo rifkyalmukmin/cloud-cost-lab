@@ -8,6 +8,8 @@ lacks the data a question needs.
 
 from __future__ import annotations
 
+from typing import Any
+
 from costlab.ai.base import (
     UNSUPPORTED_QUESTION,
     AdvisorAnswer,
@@ -173,25 +175,40 @@ class MockAdvisorProvider(AIAdvisorProvider):
                 "which resource to optimize",
                 "No low-utilization resource with cost evidence was found in the window.",
             )
-        target = low[0]
+        # Prefer a resource that has BOTH signals (low utilization and a
+        # linked recommendation) — the strongest evidence pair.
+        recs_by_resource: dict[str, list[dict[str, Any]]] = {}
+        for rec in recs:
+            recs_by_resource.setdefault(rec["resource"], []).append(rec)
+        target = next((rid for rid in low if rid in recs_by_resource), low[0])
+        matching = recs_by_resource.get(target, [])
+        evidence = [
+            "listed under low_utilization (avg CPU < 20%)",
+            "matching recommendation(s): "
+            + (
+                ", ".join(
+                    f"{rec['title']} (${rec['potential_savings']:.2f}/mo)" for rec in matching
+                )
+                if matching
+                else "none linked — verify manually on the Recommendations page"
+            ),
+        ]
         sections = {
             "summary": (
                 f"Optimize {target} first: it shows sustained low CPU utilization "
                 "while accruing cost."
             ),
-            "evidence": [
-                "listed under low_utilization (avg CPU < 20%)",
-                "matching recommendation(s): "
-                + ", ".join(r["title"] for r in recs if r["resource"] == target or True),
-            ],
+            "evidence": evidence,
             "likely_cause": "Overprovisioned shape or a workload that shrank/moved.",
             "recommendation": (
                 "Review the resource detail and the linked recommendation; verify with "
                 "the owner before any change."
             ),
-            "potential_savings": None,
+            "potential_savings": (
+                round(sum(rec["potential_savings"] for rec in matching), 2) if matching else None
+            ),
             "risk": "low-medium (confirm the workload is not periodic)",
-            "confidence": "MEDIUM",
+            "confidence": "MEDIUM" if matching else "LOW",
         }
         return AdvisorAnswer("which_resource_optimize", sections, self.name)
 
