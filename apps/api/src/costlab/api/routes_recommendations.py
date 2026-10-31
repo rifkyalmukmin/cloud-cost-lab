@@ -257,13 +257,25 @@ def get_recommendation(session: SessionDep, recommendation_id: str) -> Recommend
 
 
 @router.post("/run", response_model=RunResponse)
-def run(session: SessionDep, _principal: WritePrincipal) -> RunResponse:
+def run(session: SessionDep, principal: WritePrincipal) -> RunResponse:
     """Re-run the rule engine over the current data.
 
     Recommendation mode only: creates/updates rows in this application's
     database. It does NOT modify any cloud resource (CLAUDE.md §38).
     """
     stats = run_engine(session)
+    record_audit(
+        session,
+        action="engine_run",
+        entity_type="recommendation-engine",
+        entity_id="recommendation-engine",
+        details={
+            "generated": stats["generated"],
+            "status_preserved": stats["status_preserved"],
+            "removed": stats["removed"],
+        },
+        actor=principal.name,
+    )
     session.commit()
     return RunResponse(**stats)
 

@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
+import json
 import os
+import time
 
 import pytest
 from fastapi.dependencies.models import Dependant
@@ -109,3 +114,106 @@ def test_parse_api_keys_maps_key_to_name() -> None:
 def test_parse_api_keys_rejects_malformed_config(raw: str) -> None:
     with pytest.raises(ValueError):
         parse_api_keys(raw)
+
+
+# ---------------------------------------------------------------------------
+# JWT bearer credentials (Phase 14 hardening: short-lived tokens)
+# ---------------------------------------------------------------------------
+
+
+def _b64url(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
+
+
+def _make_jwt(
+    sub: str = "jwt-user",
+    secret: str = "test-jwt-secret-0123456789abcdef",
+    *,
+    exp_offset: float = 600.0,
+    alg: str = "HS256",
+    include_exp: bool = True,
+    include_sub: bool = True,
+) -> str:
+    header = {"alg": alg, "typ": "JWT"}
+    payload: dict = {}
+    if include_exp:
+        payload["exp"] = time.time() + exp_offset
+    if include_sub:
+        payload["sub"] = sub
+    header_b64 = _b64url(json.dumps(header).encode())
+    payload_b64 = _b64url(json.dumps(payload).encode())
+    signature = hmac.new(
+        secret.encode(), f"{header_b64}.{payload_b64}".encode(), hashlib.sha256
+    ).digest()
+    return f"{header_b64}.{payload_b64}.{_b64url(signature)}"
+
+
+def test_bearer_token_grants_write_with_sub_as_actor(client: TestClient, db_session) -> None:
+    token = _make_jwt(sub="jwt-user")
+    response = client.post(
+        "/api/recommendations/run",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 200, response.text
+
+    logs = client.get("/api/recommendations/audit-logs", params={"page_size": 5}).json()
+    run_rows = [item for item in logs["items"] if item["action"] == "engine_run"]
+    assert run_rows, "engine_run audit row missing"
+    assert run_rows[0]["actor"] == "jwt-user"  # sub claim -> audit actor
+
+
+def test_expired_bearer_token_is_401(client: TestClient) -> None:
+    token = _make_jwt(exp_offset=-60.0)  # expired an hour... a minute ago
+    response = client.post("/api/recommendations/run", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 401
+
+
+def test_bad_signature_bearer_token_is_401(client: TestClient) -> None:
+    token = _make_jwt(secret="attacker-secret-not-configured")
+    response = client.post("/api/recommendations/run", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 401
+
+
+def test_bearer_token_without_sub_is_401(client: TestClient) -> None:
+    token = _make_jwt(include_sub=False)
+    response = client.post("/api/recommendations/run", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 401
+
+
+def test_bearer_token_without_exp_is_401(client: TestClient) -> None:
+    token = _make_jwt(include_exp=False)
+    response = client.post("/api/recommendations/run", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 401
+
+
+def test_alg_none_is_401(client: TestClient) -> None:
+    token = _make_jwt(alg="none")
+    response = client.post("/api/recommendations/run", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 401
+
+
+def test_malformed_bearer_token_is_401(client: TestClient) -> None:
+    for token in ("not-a-jwt", "a.b", "a.b.c"):
+        response = client.post(
+            "/api/recommendations/run", headers={"Authorization": f"Bearer {token}"}
+        )
+        assert response.status_code == 401, token
+
+
+def test_all_failure_modes_share_one_generic_message(client: TestClient) -> None:
+    """Do not reveal whether bearer auth is configured, or which part of the
+    credential failed."""
+    messages = set()
+    for token in (
+        _make_jwt(exp_offset=-60.0),
+        _make_jwt(secret="wrong"),
+        _make_jwt(include_sub=False),
+        "garbage",
+    ):
+        response = client.post(
+            "/api/recommendations/run", headers={"Authorization": f"Bearer {token}"}
+        )
+        assert response.status_code == 401
+        # structured error envelope: {"error": {"message": ...}}
+        messages.add(response.json()["error"]["message"])
+    assert len(messages) == 1

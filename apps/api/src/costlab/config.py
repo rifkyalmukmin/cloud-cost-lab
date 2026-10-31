@@ -87,6 +87,9 @@ class Settings(BaseSettings):
     # `name:key,name:key`. The name becomes the audit-log actor. Empty = every
     # write endpoint refuses (fail closed). Generate keys: openssl rand -hex 24
     api_keys: str = ""
+    # JWT bearer (short-lived tokens); HS256 with this secret. Empty = the
+    # Bearer scheme is rejected (API keys remain the only write credential).
+    jwt_secret: str = ""
 
     @field_validator("api_keys")
     @classmethod

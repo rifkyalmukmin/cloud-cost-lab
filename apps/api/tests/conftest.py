@@ -42,6 +42,7 @@ os.environ.setdefault("MOCK_DATA_DIR", str(MOCK_DATA_DIR))
 TEST_API_KEY = "test-key-0123456789abcdef"
 TEST_ACTOR = "test-actor"
 os.environ["API_KEYS"] = f"{TEST_ACTOR}:{TEST_API_KEY}"
+os.environ["JWT_SECRET"] = "test-jwt-secret-0123456789abcdef"
 
 import pytest  # noqa: E402
 from alembic import command as alembic_command  # noqa: E402
