@@ -113,11 +113,28 @@ def _trend_direction(slope: float, mean_daily: float) -> str:
 def build_forecast(
     session: Session, filters: CostFilters, horizon_days: int = 30
 ) -> dict[str, Any]:
-    forecast_runs_total.labels(result="success").inc()
+    """Count exactly ONE outcome per run (success / insufficient_data /
+    failure) — the observability contract for this counter. Previously a
+    short-history run incremented BOTH "success" and "insufficient_data",
+    inflating the success series and lying to the metrics."""
+    try:
+        result = _build_forecast(session, filters, horizon_days)
+    except Exception:
+        forecast_runs_total.labels(result="failure").inc()
+        raise
+    if result["sufficient_data"]:
+        forecast_runs_total.labels(result="success").inc()
+    else:
+        forecast_runs_total.labels(result="insufficient_data").inc()
+    return result
+
+
+def _build_forecast(
+    session: Session, filters: CostFilters, horizon_days: int = 30
+) -> dict[str, Any]:
     series = _daily_series(session, filters)
     n = len(series)
     if n < MIN_HISTORY_DAYS:
-        forecast_runs_total.labels(result="insufficient_data").inc()
         return {
             "sufficient_data": False,
             "message": (

@@ -21,6 +21,7 @@ from fastapi.testclient import TestClient
 
 from costlab.analytics.anomalies import BASELINE_DAYS
 from costlab.analytics.forecasting import MIN_HISTORY_DAYS, build_forecast
+from costlab.analytics.observability import forecast_runs_total
 from costlab.db.session import SessionLocal  # noqa: F401  (engine wiring reference)
 
 MOCK_DIR = Path(__file__).resolve().parents[3] / "data" / "mock"
@@ -128,6 +129,70 @@ def test_forecast_missing_values_filled_as_zero_days(monkeypatch) -> None:
     result = build_forecast(None, forecasting.CostFilters(), 30)  # type: ignore[arg-type]
     assert result["sufficient_data"] is True
     assert result["forecast"][0]["expected"] == pytest.approx(2.0, abs=0.3)
+
+
+# ---------------------------------------------------------------------------
+# forecast_runs_total counting — exactly ONE outcome per run (P0 regression:
+# a short-history run used to increment BOTH "success" and
+# "insufficient_data", inflating the success series)
+# ---------------------------------------------------------------------------
+
+
+def _forecast_counter_value(result: str) -> float:
+    total = 0.0
+    for metric in forecast_runs_total.collect():
+        for sample in metric.samples:
+            if sample.name.endswith("_created"):
+                continue
+            if sample.labels.get("result") == result:
+                total += sample.value
+    return total
+
+
+def test_insufficient_run_counts_once_and_never_as_success(monkeypatch) -> None:
+    from costlab.analytics import forecasting
+
+    monkeypatch.setattr(
+        forecasting,
+        "_daily_series",
+        lambda session, filters: _series([2.0] * (MIN_HISTORY_DAYS - 1)),
+    )
+    before_success = _forecast_counter_value("success")
+    before_insufficient = _forecast_counter_value("insufficient_data")
+
+    build_forecast(None, forecasting.CostFilters(), 30)
+
+    assert _forecast_counter_value("insufficient_data") == pytest.approx(before_insufficient + 1)
+    # the double-count regression: success must NOT also increment
+    assert _forecast_counter_value("success") == before_success
+
+
+def test_sufficient_run_counts_once_as_success(monkeypatch) -> None:
+    from costlab.analytics import forecasting
+
+    monkeypatch.setattr(forecasting, "_daily_series", lambda session, filters: _series([2.0] * 60))
+    before_success = _forecast_counter_value("success")
+    before_insufficient = _forecast_counter_value("insufficient_data")
+
+    build_forecast(None, forecasting.CostFilters(), 30)
+
+    assert _forecast_counter_value("success") == pytest.approx(before_success + 1)
+    assert _forecast_counter_value("insufficient_data") == before_insufficient
+
+
+def test_forecast_failure_counts_as_failure(monkeypatch) -> None:
+    from costlab.analytics import forecasting
+
+    def boom(session, filters):
+        raise RuntimeError("database down")
+
+    monkeypatch.setattr(forecasting, "_daily_series", boom)
+    before = _forecast_counter_value("failure")
+
+    with pytest.raises(RuntimeError):
+        build_forecast(None, forecasting.CostFilters(), 30)
+
+    assert _forecast_counter_value("failure") == pytest.approx(before + 1)
 
 
 # ---------------------------------------------------------------------------
