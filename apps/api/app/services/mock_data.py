@@ -10,6 +10,8 @@ import random
 from datetime import date, timedelta
 from typing import Optional
 
+from app.clock import reference_today
+
 SEED = 42
 
 PROJECTS = [
@@ -236,7 +238,7 @@ def generate_utilization_records(
 ) -> list[dict]:
     """Generate deterministic utilization records for a resource."""
     if end_date is None:
-        end_date = date(2026, 8, 26)
+        end_date = reference_today()
     if start_date is None:
         start_date = end_date - timedelta(days=29)
 
@@ -285,7 +287,7 @@ def generate_cost_records(
 ) -> list[dict]:
     """Generate deterministic cost records for the given date range."""
     if end_date is None:
-        end_date = date(2026, 8, 26)
+        end_date = reference_today()
     if start_date is None:
         start_date = end_date - timedelta(days=89)
 

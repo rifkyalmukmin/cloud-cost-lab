@@ -10,9 +10,9 @@ Distinguishes:
 Does NOT call simulated savings "realized".
 """
 
-from datetime import datetime
 from typing import Optional
 
+from app.clock import as_of_now
 from app.services.recommendation_service import recommendation_service
 
 _LIFECYCLE_FIELDS = (
@@ -150,7 +150,7 @@ class SavingsService:
         if rec["status"] != "OPEN":
             raise ValueError(f"Cannot approve: current status is '{rec['status']}' (must be OPEN)")
 
-        now = datetime(2026, 8, 26, 12, 0, 0).isoformat() + "Z"
+        now = as_of_now().isoformat() + "Z"
         rec["status"] = "APPROVED"
         rec["approved_at"] = now
         rec["approved_by"] = actor
@@ -169,7 +169,7 @@ class SavingsService:
         if rec["status"] in ["VERIFIED", "REJECTED"]:
             raise ValueError(f"Cannot reject: current status is '{rec['status']}'")
 
-        now = datetime(2026, 8, 26, 12, 0, 0).isoformat() + "Z"
+        now = as_of_now().isoformat() + "Z"
         rec["status"] = "REJECTED"
         rec["rejected_at"] = now
         rec["rejected_by"] = actor
@@ -188,7 +188,7 @@ class SavingsService:
         if rec["status"] != "APPROVED":
             raise ValueError(f"Cannot implement: current status is '{rec['status']}' (must be APPROVED)")
 
-        now = datetime(2026, 8, 26, 12, 0, 0).isoformat() + "Z"
+        now = as_of_now().isoformat() + "Z"
         rec["status"] = "IMPLEMENTED"
         rec["implemented_at"] = now
         rec["implemented_by"] = actor
@@ -208,7 +208,7 @@ class SavingsService:
         if rec["status"] != "IMPLEMENTED":
             raise ValueError(f"Cannot verify: current status is '{rec['status']}' (must be IMPLEMENTED)")
 
-        now = datetime(2026, 8, 26, 12, 0, 0).isoformat() + "Z"
+        now = as_of_now().isoformat() + "Z"
         cost_before = rec.get("cost_before", rec["current_cost"])
         realized = round(cost_before - cost_after, 2)
 

@@ -6,10 +6,11 @@ and computes summaries, trends, and period comparisons.
 Uses the BillingDataProvider abstraction to support both mock and real GCP data.
 """
 
+import calendar
 from datetime import date, timedelta
 from typing import Optional
 
-from app.clock import SNAPSHOT_LABEL
+from app.clock import reference_today, snapshot_label
 from app.providers.base import BillingDataProvider
 from app.providers.factory import create_billing_provider
 
@@ -37,29 +38,30 @@ class CostService:
         return freshness.to_dict()
 
     def get_summary(self, reference_date: Optional[date] = None) -> dict:
-        ref = reference_date or date(2026, 8, 26)
+        ref = reference_date or reference_today()
+        rows = self._analysis_rows()
 
         current_month_start = ref.replace(day=1)
-        prev_month_end = current_month_start - timedelta(days=1)
-        prev_month_start = prev_month_end.replace(day=1)
+        previous_month_end = current_month_start - timedelta(days=1)
+        previous_month_start = previous_month_end.replace(day=1)
+        previous_cutoff = previous_month_start.replace(day=min(ref.day, previous_month_end.day))
 
         current_month_records = [
-            r for r in self.records
+            r for r in rows
             if current_month_start <= r["usage_date"] <= ref
         ]
         prev_month_records = [
-            r for r in self.records
-            if prev_month_start <= r["usage_date"] <= prev_month_end
+            r for r in rows
+            if previous_month_start <= r["usage_date"] <= previous_cutoff
         ]
 
         current_month_cost = sum(r["net_cost"] for r in current_month_records)
         prev_month_cost = sum(r["net_cost"] for r in prev_month_records)
 
-        days_in_current = (ref - current_month_start).days + 1
-        avg_daily = current_month_cost / max(days_in_current, 1)
-
-        days_in_month = 30
-        projected = avg_daily * days_in_month
+        days_elapsed = (ref - current_month_start).days + 1
+        avg_daily = current_month_cost / max(days_elapsed, 1)
+        month_length = calendar.monthrange(ref.year, ref.month)[1]
+        projected = avg_daily * month_length
 
         mom_change = 0.0
         if prev_month_cost > 0:
@@ -75,12 +77,16 @@ class CostService:
             "mom_change_percent": round(mom_change, 2),
             "average_daily_cost": round(avg_daily, 2),
             "projected_month_cost": round(projected, 2),
+            "month_length": month_length,
             "potential_savings": round(potential_savings, 2),
             "currency": "USD",
             "data_freshness": freshness.last_updated.isoformat() if freshness.last_updated else f"{ref.isoformat()}T04:00:00",
             "freshness_status": freshness.status,
-            "snapshot_label": SNAPSHOT_LABEL,
+            "snapshot_label": snapshot_label(),
         }
+
+    def _analysis_rows(self) -> list[dict]:
+        return self.records
 
     def _deduped_potential_savings(self, reference_date: date) -> float:
         from app.services.recommendation_service import recommendation_service
@@ -92,11 +98,11 @@ class CostService:
         start_date: Optional[date] = None,
         end_date: Optional[date] = None,
     ) -> dict:
-        end = end_date or date(2026, 8, 26)
+        end = end_date or reference_today()
         start = start_date or (end - timedelta(days=29))
 
         filtered = [
-            r for r in self.records
+            r for r in self._analysis_rows()
             if start <= r["usage_date"] <= end
         ]
 
@@ -127,11 +133,11 @@ class CostService:
         start_date: Optional[date] = None,
         end_date: Optional[date] = None,
     ) -> dict:
-        end = end_date or date(2026, 8, 26)
+        end = end_date or reference_today()
         start = start_date or end.replace(day=1)
 
         filtered = [
-            r for r in self.records
+            r for r in self._analysis_rows()
             if start <= r["usage_date"] <= end
         ]
 
@@ -164,11 +170,11 @@ class CostService:
         start_date: Optional[date] = None,
         end_date: Optional[date] = None,
     ) -> dict:
-        end = end_date or date(2026, 8, 26)
+        end = end_date or reference_today()
         start = start_date or end.replace(day=1)
 
         filtered = [
-            r for r in self.records
+            r for r in self._analysis_rows()
             if start <= r["usage_date"] <= end
         ]
 
@@ -201,11 +207,11 @@ class CostService:
         start_date: Optional[date] = None,
         end_date: Optional[date] = None,
     ) -> dict:
-        end = end_date or date(2026, 8, 26)
+        end = end_date or reference_today()
         start = start_date or end.replace(day=1)
 
         filtered = [
-            r for r in self.records
+            r for r in self._analysis_rows()
             if start <= r["usage_date"] <= end
         ]
 

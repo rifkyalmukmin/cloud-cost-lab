@@ -90,7 +90,9 @@ export function DashboardContent() {
         <CostSummaryCard
           title="Projected Cost"
           value={summary ? formatCurrency(summary.projected_month_cost) : "—"}
-          subtitle="30-day projection"
+          subtitle={
+            summary ? `Through ${summary.month_length} days in the month` : "Month-end projection"
+          }
           loading={loading}
           error={error}
         />

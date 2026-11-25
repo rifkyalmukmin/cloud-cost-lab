@@ -8,6 +8,7 @@ import hashlib
 from datetime import date, timedelta
 from typing import Optional
 
+from app.clock import reference_today
 from app.recommendations.rules import ALL_RULES
 from app.services.mock_data import BASE_DAILY_COSTS, RESOURCES, SERVICES
 from app.services.utilization_service import utilization_service
@@ -81,7 +82,7 @@ class RecommendationService:
         end_date: Optional[date] = None,
     ) -> list[dict]:
         """Generate all recommendations by evaluating resources against rules."""
-        end = end_date or date(2026, 8, 26)
+        end = end_date or reference_today()
         start = start_date or (end - timedelta(days=29))
 
         util_summary = utilization_service.get_utilization_summary(start, end)

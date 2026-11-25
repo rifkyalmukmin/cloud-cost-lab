@@ -7,6 +7,7 @@ and identifies utilization issues (low, high, unstable, missing metrics).
 from datetime import date, timedelta
 from typing import Optional
 
+from app.clock import reference_today
 from app.services.mock_data import (
     BASE_DAILY_COSTS,
     RESOURCES,
@@ -91,7 +92,7 @@ class UtilizationService:
         end_date: Optional[date] = None,
     ) -> dict:
         """Get aggregated utilization summary across all resources."""
-        end = end_date or date(2026, 8, 26)
+        end = end_date or reference_today()
         start = start_date or (end - timedelta(days=29))
 
         resource_utilizations = []
@@ -159,7 +160,7 @@ class UtilizationService:
         if resource is None:
             return None
 
-        end = end_date or date(2026, 8, 26)
+        end = end_date or reference_today()
         start = start_date or (end - timedelta(days=29))
 
         util_records = generate_utilization_records(resource_id, start, end)
@@ -214,7 +215,7 @@ class UtilizationService:
         end_date: Optional[date] = None,
     ) -> dict:
         """Get cost vs utilization data for visualization."""
-        end = end_date or date(2026, 8, 26)
+        end = end_date or reference_today()
         start = start_date or end.replace(day=1)
 
         cost_records = generate_cost_records(start, end)

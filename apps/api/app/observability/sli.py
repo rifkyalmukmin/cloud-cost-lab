@@ -6,8 +6,7 @@ Tracks:
 - Recommendation pipeline success (target: >= 99%)
 """
 
-from datetime import datetime
-
+from app.clock import as_of_now
 from app.observability.metrics import metrics
 
 SLO_TARGETS = {
@@ -82,5 +81,5 @@ def get_slo_status() -> dict:
         "overall_status": "HEALTHY" if all_met else "DEGRADED",
         "slis": slis,
         "slo_targets": SLO_TARGETS,
-        "evaluated_at": datetime(2026, 8, 26, 12, 0, 0).isoformat(),
+        "evaluated_at": as_of_now().isoformat(),
     }

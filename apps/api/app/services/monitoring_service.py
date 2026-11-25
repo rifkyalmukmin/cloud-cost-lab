@@ -7,6 +7,7 @@ enriched evidence for resource optimization recommendations.
 from datetime import date, timedelta
 from typing import Optional
 
+from app.clock import reference_today
 from app.providers.monitoring_base import MonitoringDataProvider
 from app.providers.monitoring_factory import create_monitoring_provider
 from app.services.mock_data import BASE_DAILY_COSTS, RESOURCES, SERVICES
@@ -37,7 +38,7 @@ class MonitoringService:
         end_date: Optional[date] = None,
     ) -> dict:
         """Get all resource metrics enriched with cost data and evidence strength."""
-        end = end_date or date(2026, 8, 26)
+        end = end_date or reference_today()
         start = start_date or (end - timedelta(days=29))
 
         all_metrics = self.provider.get_all_resource_metrics(start, end)

@@ -79,21 +79,30 @@ Returns cost breakdown grouped by environment (production/staging/development).
 ## Calculations
 
 ### Month-over-Month Change
+The previous period is the same day-of-month window, not the entire previous month.
+
 ```
-mom_change = ((current_month - previous_month) / previous_month) * 100
+current = cost from day 1 through day N of this month
+previous = cost from day 1 through day N of the previous month
+mom_change = ((current - previous) / previous) * 100
 ```
+
+Day N is clamped to the last day of the previous month.
 
 ### Projected Month Cost
 ```
 avg_daily = current_month_cost / days_elapsed
-projected = avg_daily * 30
+projected = avg_daily * calendar_days_in_month
 ```
 
-### Potential Savings (Estimate)
+August uses 31 days. February uses 28 or 29.
+
+### Potential Savings
 ```
-potential_savings = current_month_cost * 0.18
+potential_savings = sum of deduplicated recommendation savings
 ```
-This is a placeholder heuristic. Real savings calculations come from the recommendation engine (Phase 4).
+
+One recommendation wins per resource. The total is that evidence, not a percentage of spend.
 
 ## Cost Dimensions
 

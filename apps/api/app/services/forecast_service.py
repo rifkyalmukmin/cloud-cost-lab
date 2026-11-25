@@ -7,6 +7,7 @@ Forecasts include confidence ranges and are never presented as exact values.
 from datetime import date, timedelta
 from typing import Optional
 
+from app.clock import reference_today
 from app.services.cost_service import cost_service
 
 
@@ -21,7 +22,7 @@ class ForecastService:
         Uses both moving average and linear trend to provide
         expected value with lower/upper bounds.
         """
-        ref = reference_date or date(2026, 8, 26)
+        ref = reference_date or reference_today()
 
         # Get 60 days of historical data for forecast
         start = ref - timedelta(days=59)

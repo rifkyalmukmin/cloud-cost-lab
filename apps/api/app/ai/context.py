@@ -8,6 +8,7 @@ from datetime import date
 from typing import Optional
 
 from app.ai.safety import filter_sensitive_data
+from app.clock import reference_today
 from app.services.anomaly_service import anomaly_service
 from app.services.budget_service import budget_service
 from app.services.cost_service import cost_service
@@ -22,7 +23,7 @@ def build_context(reference_date: Optional[date] = None) -> dict:
     Gathers cost, utilization, recommendations, forecast, anomalies,
     and budget data into a single context dictionary.
     """
-    ref = reference_date or date(2026, 8, 26)
+    ref = reference_date or reference_today()
 
     cost_summary = cost_service.get_summary(ref)
     cost_by_service = cost_service.get_by_service()

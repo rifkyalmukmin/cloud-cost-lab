@@ -8,6 +8,8 @@ from abc import ABC, abstractmethod
 from datetime import date, datetime
 from typing import Optional
 
+from app.clock import as_of_now
+
 
 class MetricsFreshness:
     """Tracks how fresh the monitoring metrics are."""
@@ -24,7 +26,7 @@ class MetricsFreshness:
     def data_age_hours(self) -> Optional[float]:
         if self.last_updated is None:
             return None
-        now = datetime(2026, 8, 26, 12, 0, 0)
+        now = as_of_now()
         delta = now - self.last_updated
         return round(delta.total_seconds() / 3600, 1)
 

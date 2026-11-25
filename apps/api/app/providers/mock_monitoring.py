@@ -9,6 +9,7 @@ import random
 from datetime import date, datetime, timedelta
 from typing import Optional
 
+from app.clock import reference_today
 from app.providers.monitoring_base import MetricsFreshness, MonitoringDataProvider
 from app.services.mock_data import RESOURCE_UTILIZATION, RESOURCES, SEED
 
@@ -82,7 +83,7 @@ class MockMonitoringProvider(MonitoringDataProvider):
         if resource is None:
             return None
 
-        end = end_date or date(2026, 8, 26)
+        end = end_date or reference_today()
         start = start_date or (end - timedelta(days=29))
 
         base_util = RESOURCE_UTILIZATION.get(resource_id, {})
@@ -150,7 +151,7 @@ class MockMonitoringProvider(MonitoringDataProvider):
         end_date: Optional[date] = None,
     ) -> list[dict]:
         results = []
-        end = end_date or date(2026, 8, 26)
+        end = end_date or reference_today()
         start = start_date or (end - timedelta(days=29))
 
         for resource in RESOURCES:

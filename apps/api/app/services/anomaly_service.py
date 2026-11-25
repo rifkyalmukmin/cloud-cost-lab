@@ -6,6 +6,7 @@ Detects unexpected cost increases using rolling average and z-score.
 from datetime import date, timedelta
 from typing import Optional
 
+from app.clock import reference_today
 from app.services.cost_service import cost_service
 from app.services.mock_data import generate_cost_records
 
@@ -17,7 +18,7 @@ class AnomalyService:
         lookback_days: int = 30,
     ) -> dict:
         """Detect cost anomalies using rolling average and z-score."""
-        ref = reference_date or date(2026, 8, 26)
+        ref = reference_date or reference_today()
         start = ref - timedelta(days=lookback_days - 1)
 
         trend = cost_service.get_trend(start, ref)

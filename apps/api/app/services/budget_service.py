@@ -7,6 +7,7 @@ No automatic destructive actions — only warnings and recommendations.
 from datetime import date
 from typing import Optional
 
+from app.clock import reference_today
 from app.services.cost_service import cost_service
 
 
@@ -40,7 +41,7 @@ class BudgetService:
         reference_date: Optional[date] = None,
     ) -> dict:
         """Get current budget status with spending, utilization, and alerts."""
-        ref = reference_date or date(2026, 8, 26)
+        ref = reference_date or reference_today()
 
         summary = cost_service.get_summary(ref)
         current_spend = summary["current_month_cost"]

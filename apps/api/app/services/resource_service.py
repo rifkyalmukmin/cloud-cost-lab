@@ -4,9 +4,10 @@ Provides resource listing, filtering, pagination, and detail views
 including cost and utilization data linked to each resource.
 """
 
-from datetime import date, timedelta
+from datetime import timedelta
 from typing import Optional
 
+from app.clock import reference_today
 from app.services.mock_data import (
     BASE_DAILY_COSTS,
     POTENTIAL_SAVINGS,
@@ -113,7 +114,7 @@ class ResourceService:
         if resource is None:
             return None
 
-        end_date = date(2026, 8, 26)
+        end_date = reference_today()
         start_date = end_date.replace(day=1)
 
         cost_records = generate_cost_records(start_date=start_date, end_date=end_date)

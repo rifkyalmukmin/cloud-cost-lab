@@ -6,6 +6,7 @@ export interface CostSummary {
   mom_change_percent: number;
   average_daily_cost: number;
   projected_month_cost: number;
+  month_length: number;
   potential_savings: number;
   currency: string;
   data_freshness: string;
