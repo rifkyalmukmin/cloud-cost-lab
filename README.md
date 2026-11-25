@@ -133,8 +133,11 @@ uvicorn app.main:app --port 8000
 
 # Frontend
 cd apps/web
+cp .env.example .env.local
 npm install && npm run dev
 ```
+
+Approval actions need the same `API_TOKEN` and `API_PRINCIPAL` on the API process and in `apps/web/.env.local`. The browser never sends the token; the Next.js server adds it.
 
 - Dashboard: http://localhost:3000
 - API: http://localhost:8000
@@ -142,9 +145,15 @@ npm install && npm run dev
 
 ### With Docker
 
+`docker compose up -d` starts the API, the dashboard, and PostgreSQL. Lifecycle changes are stored in Postgres. Approval calls use the local demo token `dev-demo-token` (override `API_TOKEN` and `API_PRINCIPAL` before any shared deployment).
+
 ```bash
 docker compose up -d
 ```
+
+- Dashboard: http://localhost:3000
+- Approvals: http://localhost:3000/approvals
+- API: http://localhost:8000
 
 ### Demo Flow (5 minutes)
 
@@ -193,7 +202,7 @@ Incidents documented: billing stale, BigQuery failure, API outage, recommendatio
 
 ## Testing
 
-- **312 backend tests** (unit + integration)
+- **329 backend tests** (unit + integration), coverage gate 80%
 - Coverage: cost aggregation, utilization statistics, recommendation boundaries, lifecycle enforcement, AI safety, SLI/SLO
 - Frontend: TypeScript strict mode + ESLint + build validation
 

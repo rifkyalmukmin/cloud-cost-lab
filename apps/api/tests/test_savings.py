@@ -1,16 +1,33 @@
 """Tests for savings verification workflow and recommendation lifecycle."""
 
 import pytest
+from app.auth import require_principal
+from app.config import settings
+from app.main import app
+from app.services.recommendation_service import recommendation_service
+from app.services.savings_service import SavingsService
 from fastapi.testclient import TestClient
 
-from app.main import app
-from app.services.savings_service import SavingsService
-from app.services.recommendation_service import recommendation_service
+
+@pytest.fixture(autouse=True)
+def reset_global_lifecycle():
+    from app.services.savings_service import savings_service
+
+    savings_service._recommendations_state.clear()
+    savings_service._audit_log.clear()
+    savings_service._persister = None
+    savings_service._seed_demo_data()
+    yield
 
 
 @pytest.fixture
 def client():
-    return TestClient(app)
+    app.dependency_overrides[require_principal] = lambda: "test-user"
+    test_client = TestClient(app)
+    try:
+        yield test_client
+    finally:
+        app.dependency_overrides.pop(require_principal, None)
 
 
 @pytest.fixture
@@ -204,6 +221,83 @@ class TestAuditLog:
         assert log[0]["reason"] == "not needed"
 
 
+class TestSavingsAuth:
+    def test_require_principal_rejects_missing_configuration(self, monkeypatch):
+        from fastapi import HTTPException
+
+        monkeypatch.setattr(settings, "api_token", "")
+        monkeypatch.setattr(settings, "api_principal", "")
+        with pytest.raises(HTTPException) as exc:
+            require_principal(authorization=None)
+        assert exc.value.status_code == 401
+
+    def test_require_principal_checks_bearer_token(self, monkeypatch):
+        from fastapi import HTTPException
+
+        monkeypatch.setattr(settings, "api_token", "secret-token")
+        monkeypatch.setattr(settings, "api_principal", "demo-approver")
+        assert require_principal(authorization="Bearer secret-token") == "demo-approver"
+        with pytest.raises(HTTPException) as missing:
+            require_principal(authorization=None)
+        assert missing.value.status_code == 401
+        with pytest.raises(HTTPException) as invalid:
+            require_principal(authorization="Bearer wrong")
+        assert invalid.value.status_code == 401
+
+    def test_approve_requires_principal(self):
+        bare = TestClient(app)
+        recs = bare.get("/api/recommendations").json()["recommendations"]
+        open_rec = next((item for item in recs if item["status"] == "OPEN"), None)
+        if open_rec is None:
+            pytest.skip("No open recommendation")
+        response = bare.post(f"/api/savings/{open_rec['id']}/approve")
+        assert response.status_code == 401
+
+    def test_token_sets_principal_and_ignores_body_actor(self, monkeypatch):
+        monkeypatch.setattr(settings, "api_token", "secret-token")
+        monkeypatch.setattr(settings, "api_principal", "demo-approver")
+        bare = TestClient(app)
+        recs = bare.get("/api/recommendations").json()["recommendations"]
+        open_rec = next((item for item in recs if item["status"] == "OPEN"), None)
+        if open_rec is None:
+            pytest.skip("No open recommendation")
+        rejected = bare.post(
+            f"/api/savings/{open_rec['id']}/approve",
+            headers={"Authorization": "Bearer wrong"},
+            json={"actor": "imposter"},
+        )
+        assert rejected.status_code == 401
+        accepted = bare.post(
+            f"/api/savings/{open_rec['id']}/approve",
+            headers={"Authorization": "Bearer secret-token"},
+            json={"actor": "imposter"},
+        )
+        assert accepted.status_code == 200
+        assert accepted.json()["approved_by"] == "demo-approver"
+
+    def test_verify_rejects_negative_cost(self, client):
+        recs = client.get("/api/recommendations").json()["recommendations"]
+        implemented = next((item for item in recs if item["status"] == "IMPLEMENTED"), None)
+        if implemented is None:
+            pytest.skip("No implemented recommendation")
+        response = client.post(
+            f"/api/savings/{implemented['id']}/verify",
+            json={"cost_after": -1},
+        )
+        assert response.status_code == 422
+
+    def test_reject_reason_length(self, client):
+        recs = client.get("/api/recommendations").json()["recommendations"]
+        open_rec = next((item for item in recs if item["status"] == "OPEN"), None)
+        if open_rec is None:
+            pytest.skip("No open recommendation")
+        response = client.post(
+            f"/api/savings/{open_rec['id']}/reject",
+            json={"reason": "x" * 501},
+        )
+        assert response.status_code == 422
+
+
 class TestSavingsAPI:
     def test_get_savings_summary(self, client):
         response = client.get("/api/savings")
@@ -235,12 +329,11 @@ class TestSavingsAPI:
     def test_approve_endpoint(self, client, open_rec_id):
         if open_rec_id is None:
             pytest.skip("No open recommendation available")
-        response = client.post(
-            f"/api/savings/{open_rec_id}/approve",
-            json={"actor": "test-user"},
-        )
+        response = client.post(f"/api/savings/{open_rec_id}/approve")
         assert response.status_code == 200
-        assert response.json()["status"] == "APPROVED"
+        body = response.json()
+        assert body["status"] == "APPROVED"
+        assert body["approved_by"] == "test-user"
 
     def test_reject_endpoint(self, client):
         recs_response = client.get("/api/recommendations")
@@ -253,7 +346,9 @@ class TestSavingsAPI:
         rec_id = open_recs[-1]["id"]
         response = client.post(
             f"/api/savings/{rec_id}/reject",
-            json={"actor": "mgr", "reason": "not needed"},
+            json={"reason": "not needed"},
         )
         assert response.status_code == 200
-        assert response.json()["status"] == "REJECTED"
+        body = response.json()
+        assert body["status"] == "REJECTED"
+        assert body["rejected_by"] == "test-user"

@@ -4,7 +4,7 @@ Tracks spending against budgets and generates alerts when thresholds are breache
 No automatic destructive actions — only warnings and recommendations.
 """
 
-from datetime import date, timedelta
+from datetime import date
 from typing import Optional
 
 from app.services.cost_service import cost_service

@@ -26,11 +26,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         <header className="border-b bg-card">
-          <div className="max-w-7xl mx-auto px-6 h-14 flex items-center gap-6">
+          <div className="max-w-7xl mx-auto px-6 min-h-14 py-2 flex flex-wrap items-center gap-x-6 gap-y-2">
             <Link href="/" className="font-semibold text-sm">
               Cloud Cost Lab
             </Link>
-            <nav className="flex gap-4 text-sm text-muted-foreground">
+            <nav className="flex flex-wrap gap-4 text-sm text-muted-foreground">
               <Link href="/" className="hover:text-foreground transition-colors">
                 Overview
               </Link>
@@ -45,6 +45,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               </Link>
               <Link href="/recommendations" className="hover:text-foreground transition-colors">
                 Recommendations
+              </Link>
+              <Link href="/approvals" className="hover:text-foreground transition-colors">
+                Approvals
               </Link>
             </nav>
           </div>

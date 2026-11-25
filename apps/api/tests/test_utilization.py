@@ -1,12 +1,10 @@
 """Tests for utilization analytics API and service."""
 
-from datetime import date
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.main import app
 from app.services.utilization_service import UtilizationService
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture

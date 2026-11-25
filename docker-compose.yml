@@ -11,11 +11,37 @@ services:
       - API_HOST=0.0.0.0
       - API_PORT=8000
       - LOG_LEVEL=INFO
+      - DATABASE_URL=postgresql://cloudcost:cloudcost@db:5432/cloudcost
+      - PERSIST_LIFECYCLE=true
+      - API_TOKEN=${API_TOKEN:-dev-demo-token}
+      - API_PRINCIPAL=${API_PRINCIPAL:-demo-approver}
+    depends_on:
+      db:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 10s
       timeout: 5s
       retries: 3
+      start_period: 20s
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    environment:
+      - API_TOKEN=${API_TOKEN:-dev-demo-token}
+      - API_PRINCIPAL=${API_PRINCIPAL:-demo-approver}
+      - API_BASE_URL=http://api:8000
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      api:
+        condition: service_healthy
     restart: unless-stopped
 
   db:

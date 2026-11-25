@@ -9,6 +9,7 @@ Uses the BillingDataProvider abstraction to support both mock and real GCP data.
 from datetime import date, timedelta
 from typing import Optional
 
+from app.clock import SNAPSHOT_LABEL
 from app.providers.base import BillingDataProvider
 from app.providers.factory import create_billing_provider
 
@@ -64,7 +65,7 @@ class CostService:
         if prev_month_cost > 0:
             mom_change = ((current_month_cost - prev_month_cost) / prev_month_cost) * 100
 
-        potential_savings = round(current_month_cost * 0.18, 2)
+        potential_savings = self._deduped_potential_savings(ref)
 
         freshness = self.provider.get_data_freshness()
 
@@ -78,7 +79,13 @@ class CostService:
             "currency": "USD",
             "data_freshness": freshness.last_updated.isoformat() if freshness.last_updated else f"{ref.isoformat()}T04:00:00",
             "freshness_status": freshness.status,
+            "snapshot_label": SNAPSHOT_LABEL,
         }
+
+    def _deduped_potential_savings(self, reference_date: date) -> float:
+        from app.services.recommendation_service import recommendation_service
+
+        return recommendation_service.total_potential_savings(reference_date)
 
     def get_trend(
         self,

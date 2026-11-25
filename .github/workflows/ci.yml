@@ -27,7 +27,10 @@ jobs:
           cache-dependency-path: apps/api/requirements.txt
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements-dev.txt
+
+      - name: Lint
+        run: ruff check app tests alembic
 
       - name: Run tests
         run: python -m pytest tests/ -v --tb=short

@@ -1,10 +1,9 @@
 """Tests for anomaly detection."""
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.main import app
 from app.services.anomaly_service import AnomalyService
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture

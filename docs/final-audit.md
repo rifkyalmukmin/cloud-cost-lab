@@ -9,7 +9,7 @@
 
 | Check | Result |
 |-------|--------|
-| Backend tests | 312 passed, 0 failed |
+| Backend tests | 329 passed, 0 failed |
 | Frontend build | Success (TypeScript strict) |
 | Frontend lint | 0 errors |
 | Secret scan | No secrets in codebase |
@@ -86,7 +86,7 @@
 | Integration tests | 9/10 | API endpoints tested via TestClient |
 | Boundary conditions | 10/10 | CPU 0/5/10/20, null, zero, budget thresholds |
 | Edge cases | 9/10 | Empty responses, missing data, provider failure |
-| Test count | 9/10 | 312 tests, comprehensive coverage |
+| Test count | 9/10 | 329 tests, comprehensive coverage |
 | Frontend validation | 8/10 | Build + lint (no unit tests for components) |
 | Test speed | 10/10 | Full suite in < 1 second |
 | Deterministic data | 10/10 | Seed-based mock data (reproducible) |

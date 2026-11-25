@@ -11,7 +11,7 @@ Key technical achievements:
 - Built 5-rule recommendation engine with priority scoring and lifecycle tracking
 - Implemented 30-day cost forecasting with confidence ranges
 - Designed AI advisor with read-only safety constraints
-- 312 automated tests, CI/CD with security scanning, Terraform infrastructure
+- 329 automated tests, CI/CD with security scanning, Terraform infrastructure
 
 Tech: Python (FastAPI), TypeScript (Next.js), GCP, Terraform, GitHub Actions, Docker
 

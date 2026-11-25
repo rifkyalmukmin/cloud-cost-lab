@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8000
     api_debug: bool = True
+    api_token: str = ""
+    api_principal: str = ""
+    persist_lifecycle: bool = False
     database_url: str = "postgresql://cloudcost:cloudcost@localhost:5432/cloudcost"
     log_level: str = "INFO"
     log_format: str = "json"

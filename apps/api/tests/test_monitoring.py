@@ -1,17 +1,16 @@
 """Tests for monitoring service and providers."""
 
 from datetime import date, datetime
+from unittest.mock import patch
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.main import app
-from app.providers.mock_monitoring import MockMonitoringProvider
-from app.providers.monitoring_base import MetricsFreshness, MonitoringDataProvider
 from app.providers.gcp_monitoring import GCPMonitoringProvider, GCPMonitoringProviderError
+from app.providers.mock_monitoring import MockMonitoringProvider
+from app.providers.monitoring_base import MetricsFreshness
 from app.providers.monitoring_factory import create_monitoring_provider
 from app.services.monitoring_service import MonitoringService
-from unittest.mock import patch
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture

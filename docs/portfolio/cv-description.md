@@ -15,7 +15,7 @@ Built a GCP FinOps platform that aggregates billing and utilization data, detect
 - Designed and built a GCP FinOps platform that identifies cloud waste through cost-utilization correlation, detecting idle resources (CPU <5%) and generating prioritized optimization recommendations
 - Implemented GCP Billing Export integration (BigQuery) with partition-aware queries, achieving <$0.10/month query cost through cost-safe patterns
 - Created Terraform modules (IAM, BigQuery, Storage, Compute) with least-privilege service accounts and documented destroy procedures
-- Built CI/CD pipeline with GitHub Actions: automated testing (312 tests), security scanning (Trivy + Gitleaks), and multi-arch Docker builds (amd64 + arm64)
+- Built CI/CD pipeline with GitHub Actions: automated testing (329 tests), security scanning (Trivy + Gitleaks), and multi-arch Docker builds (amd64 + arm64)
 - Implemented SRE practices: SLI/SLO monitoring (99.5% availability target), incident response procedures, and operational runbooks
 
 ### Infrastructure Engineer / SRE Role
@@ -36,4 +36,4 @@ Built a GCP FinOps platform that aggregates billing and utilization data, detect
 
 ## GitHub Description
 
-GCP FinOps platform — cost visibility, utilization analysis, recommendations, forecasting, anomaly detection, AI advisor. Built with FastAPI, Next.js, Terraform, GitHub Actions. 312 tests, demo mode.
+GCP FinOps platform — cost visibility, utilization analysis, recommendations, forecasting, anomaly detection, AI advisor. Built with FastAPI, Next.js, Terraform, GitHub Actions. 329 tests, demo mode.

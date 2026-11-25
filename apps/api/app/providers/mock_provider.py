@@ -4,7 +4,7 @@ Uses deterministic synthetic data. Works without GCP credentials.
 Default provider when DEMO_MODE=true.
 """
 
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from typing import Optional
 
 from app.providers.base import BillingDataProvider, DataFreshness

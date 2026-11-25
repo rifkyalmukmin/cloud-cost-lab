@@ -10,7 +10,6 @@ from datetime import datetime
 
 from app.observability.metrics import metrics
 
-
 SLO_TARGETS = {
     "api_availability": {
         "target": 99.5,

@@ -12,6 +12,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { DailyCost } from "@/lib/api";
+import { formatIsoDate } from "@/lib/dates";
 
 interface CostTrendChartProps {
   data: DailyCost[] | null;
@@ -20,8 +21,7 @@ interface CostTrendChartProps {
 }
 
 function formatDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return formatIsoDate(dateStr);
 }
 
 function formatCurrency(value: number): string {

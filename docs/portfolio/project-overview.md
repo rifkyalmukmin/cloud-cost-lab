@@ -31,7 +31,7 @@ Cloud cost optimization is one of the most impactful problems in infrastructure 
 
 ## Technical Highlights
 
-- **312 automated tests** covering business logic, edge cases, and API integration
+- **329 automated tests** covering business logic, edge cases, and API integration
 - **Provider abstraction** (BillingDataProvider, MonitoringDataProvider) for seamless mock/real switching
 - **Evidence-based recommendations** — never guesses, always shows data
 - **Human approval gates** — no destructive action without explicit approval
@@ -56,7 +56,7 @@ For a Cloud Engineer / DevOps / SRE role, this project shows:
 
 | Metric | Value |
 |--------|-------|
-| Backend tests | 312 |
+| Backend tests | 329 |
 | API endpoints | 30+ |
 | Documentation files | 25+ |
 | Terraform modules | 4 |

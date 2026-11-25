@@ -1,8 +1,8 @@
 """Monitoring provider factory — selects provider based on configuration."""
 
 from app.config import settings
-from app.providers.monitoring_base import MonitoringDataProvider
 from app.providers.mock_monitoring import MockMonitoringProvider
+from app.providers.monitoring_base import MonitoringDataProvider
 
 
 def create_monitoring_provider() -> MonitoringDataProvider:

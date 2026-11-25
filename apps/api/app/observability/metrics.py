@@ -4,13 +4,14 @@ Tracks key operational metrics for SLI/SLO monitoring.
 Uses an in-memory metrics store (production would use Prometheus or Cloud Monitoring).
 """
 
-import time
 from collections import defaultdict
 from threading import Lock
 
 
 class Metrics:
     """Thread-safe in-memory metrics store."""
+
+    MAX_HISTOGRAM_SAMPLES = 512
 
     def __init__(self):
         self._counters: dict[str, int] = defaultdict(int)
@@ -26,7 +27,11 @@ class Metrics:
     def observe(self, name: str, value: float, labels: dict | None = None) -> None:
         key = self._make_key(name, labels)
         with self._lock:
-            self._histograms[key].append(value)
+            samples = self._histograms[key]
+            samples.append(value)
+            overflow = len(samples) - self.MAX_HISTOGRAM_SAMPLES
+            if overflow > 0:
+                del samples[:overflow]
 
     def set_gauge(self, name: str, value: float, labels: dict | None = None) -> None:
         key = self._make_key(name, labels)

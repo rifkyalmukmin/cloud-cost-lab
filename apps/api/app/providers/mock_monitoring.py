@@ -10,8 +10,7 @@ from datetime import date, datetime, timedelta
 from typing import Optional
 
 from app.providers.monitoring_base import MetricsFreshness, MonitoringDataProvider
-from app.services.mock_data import RESOURCES, RESOURCE_UTILIZATION, SEED
-
+from app.services.mock_data import RESOURCE_UTILIZATION, RESOURCES, SEED
 
 # Extended metrics beyond basic utilization
 RESOURCE_EXTENDED_METRICS: dict[str, dict] = {

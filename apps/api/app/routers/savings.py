@@ -1,26 +1,35 @@
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field, field_validator
 
+from app.auth import require_principal
 from app.services.savings_service import savings_service
 
 router = APIRouter(prefix="/api/savings", tags=["savings"])
 
 
-class ApproveRequest(BaseModel):
-    actor: str
-
-
 class RejectRequest(BaseModel):
-    actor: str
-    reason: str
+    reason: str = Field(min_length=1, max_length=500)
 
-
-class ImplementRequest(BaseModel):
-    actor: str
+    @field_validator("reason")
+    @classmethod
+    def reason_not_blank(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("Reason is required")
+        if len(cleaned) > 500:
+            raise ValueError("Reason must be 1-500 characters")
+        return cleaned
 
 
 class VerifyRequest(BaseModel):
-    cost_after: float
+    cost_after: float = Field(ge=0)
+
+    @field_validator("cost_after")
+    @classmethod
+    def cost_after_is_finite(cls, value: float) -> float:
+        if value != value or value == float("inf"):
+            raise ValueError("cost_after must be a finite number >= 0")
+        return value
 
 
 @router.get("")
@@ -46,36 +55,50 @@ def get_recommendation_state(recommendation_id: str):
 
 
 @router.post("/{recommendation_id}/approve")
-def approve_recommendation(recommendation_id: str, body: ApproveRequest):
+def approve_recommendation(
+    recommendation_id: str,
+    principal: str = Depends(require_principal),
+):
     """Approve a recommendation for implementation."""
     try:
-        return savings_service.approve(recommendation_id, body.actor)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        return savings_service.approve(recommendation_id, principal)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.post("/{recommendation_id}/reject")
-def reject_recommendation(recommendation_id: str, body: RejectRequest):
+def reject_recommendation(
+    recommendation_id: str,
+    body: RejectRequest,
+    principal: str = Depends(require_principal),
+):
     """Reject a recommendation with reason."""
     try:
-        return savings_service.reject(recommendation_id, body.actor, body.reason)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        return savings_service.reject(recommendation_id, principal, body.reason)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.post("/{recommendation_id}/implement")
-def implement_recommendation(recommendation_id: str, body: ImplementRequest):
+def implement_recommendation(
+    recommendation_id: str,
+    principal: str = Depends(require_principal),
+):
     """Mark a recommendation as implemented."""
     try:
-        return savings_service.implement(recommendation_id, body.actor)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        return savings_service.implement(recommendation_id, principal)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.post("/{recommendation_id}/verify")
-def verify_recommendation(recommendation_id: str, body: VerifyRequest):
+def verify_recommendation(
+    recommendation_id: str,
+    body: VerifyRequest,
+    _principal: str = Depends(require_principal),
+):
     """Verify savings with actual post-change cost data."""
     try:
         return savings_service.verify(recommendation_id, body.cost_after)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc

@@ -1,11 +1,10 @@
 """Tests for AI Cloud Cost Advisor."""
 
 import pytest
-from fastapi.testclient import TestClient
-
-from app.main import app
 from app.ai.advisor import CostAdvisor
-from app.ai.safety import sanitize_input, validate_question, filter_sensitive_data
+from app.ai.safety import filter_sensitive_data, sanitize_input, validate_question
+from app.main import app
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture

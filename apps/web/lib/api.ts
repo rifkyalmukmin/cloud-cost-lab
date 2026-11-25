@@ -9,6 +9,8 @@ export interface CostSummary {
   potential_savings: number;
   currency: string;
   data_freshness: string;
+  freshness_status: string;
+  snapshot_label: string;
 }
 
 export interface DailyCost {

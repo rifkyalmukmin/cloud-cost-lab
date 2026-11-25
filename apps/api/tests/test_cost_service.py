@@ -3,9 +3,9 @@
 from datetime import date
 
 import pytest
-
 from app.services.cost_service import CostService
-from app.services.mock_data import generate_cost_records, PROJECTS, SERVICES, RESOURCES
+from app.services.mock_data import PROJECTS, RESOURCES, SERVICES, generate_cost_records
+from app.services.recommendation_service import recommendation_service
 
 
 class TestMockData:
@@ -81,6 +81,14 @@ class TestCostService:
         assert "potential_savings" in summary
         assert "currency" in summary
         assert "data_freshness" in summary
+        assert "freshness_status" in summary
+        assert summary["snapshot_label"] == "data demo per 26 Agu 2026"
+
+    def test_potential_savings_uses_deduped_recommendations(self, service):
+        summary = service.get_summary(reference_date=date(2026, 8, 26))
+        expected = recommendation_service.total_potential_savings(date(2026, 8, 26))
+        assert summary["potential_savings"] == expected
+        assert summary["potential_savings"] != round(summary["current_month_cost"] * 0.18, 2)
 
     def test_summary_values_positive(self, service):
         summary = service.get_summary(reference_date=date(2026, 8, 26))

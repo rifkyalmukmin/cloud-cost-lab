@@ -7,13 +7,13 @@ Provides only the data needed to answer cost-related questions.
 from datetime import date
 from typing import Optional
 
-from app.services.cost_service import cost_service
-from app.services.recommendation_service import recommendation_service
-from app.services.utilization_service import utilization_service
-from app.services.forecast_service import forecast_service
+from app.ai.safety import filter_sensitive_data
 from app.services.anomaly_service import anomaly_service
 from app.services.budget_service import budget_service
-from app.ai.safety import filter_sensitive_data
+from app.services.cost_service import cost_service
+from app.services.forecast_service import forecast_service
+from app.services.recommendation_service import recommendation_service
+from app.services.utilization_service import utilization_service
 
 
 def build_context(reference_date: Optional[date] = None) -> dict:
@@ -31,6 +31,7 @@ def build_context(reference_date: Optional[date] = None) -> dict:
     util_summary = utilization_service.get_utilization_summary()
 
     recommendations = recommendation_service.generate_recommendations()
+    savings_total = round(sum(item["potential_savings"] for item in recommendations), 2)
 
     forecast_data = forecast_service.forecast_cost(ref)
 
@@ -71,6 +72,7 @@ def build_context(reference_date: Optional[date] = None) -> dict:
                 for r in util_summary["resources"]
             ],
         },
+        "savings_total": savings_total,
         "recommendations": [
             {
                 "title": r["title"],

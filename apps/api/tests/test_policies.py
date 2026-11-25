@@ -1,17 +1,16 @@
 """Tests for governance policies."""
 
 import pytest
-from fastapi.testclient import TestClient
-
-from app.main import app
 from app.governance.policies import (
-    RequireOwnerLabelPolicy,
-    RequireEnvironmentLabelPolicy,
+    DevResourceSchedulePolicy,
     MaxMonthlyCostPolicy,
     NoPublicDatabasePolicy,
-    DevResourceSchedulePolicy,
+    RequireEnvironmentLabelPolicy,
+    RequireOwnerLabelPolicy,
 )
+from app.main import app
 from app.services.policy_service import PolicyService
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture

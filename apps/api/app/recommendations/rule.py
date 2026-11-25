@@ -1,7 +1,6 @@
 """Base interface for recommendation rules."""
 
 from abc import ABC, abstractmethod
-from typing import Optional
 
 
 class RecommendationRule(ABC):

@@ -7,7 +7,21 @@ from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.observability.middleware import MetricsMiddleware
-from app.routers import ai, anomalies, budget, cost, forecast, health, monitoring, observability, policies, recommendations, resources, savings, utilization
+from app.routers import (
+    ai,
+    anomalies,
+    budget,
+    cost,
+    forecast,
+    health,
+    monitoring,
+    observability,
+    policies,
+    recommendations,
+    resources,
+    savings,
+    utilization,
+)
 
 structlog.configure(
     processors=[
@@ -29,6 +43,12 @@ async def lifespan(app: FastAPI):
         environment=settings.app_env,
         demo_mode=settings.demo_mode,
     )
+    if settings.persist_lifecycle:
+        from app.persistence import bind_lifecycle
+        from app.services.savings_service import savings_service
+
+        bind_lifecycle(savings_service, settings.database_url)
+        logger.info("lifecycle_persisted")
     yield
 
 

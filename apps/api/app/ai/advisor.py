@@ -91,7 +91,7 @@ class CostAdvisor:
             "evidence": "; ".join(evidence_parts),
             "likely_cause": cause,
             "recommendation": "Review top-spending services and investigate anomalies. Check for new resources or workload changes.",
-            "potential_savings": context["cost"]["current_month"] * 0.15,
+            "potential_savings": context["savings_total"],
             "risk": "MEDIUM" if mom > 30 else "LOW",
             "confidence": "HIGH" if anomalies["total"] > 0 else "MEDIUM",
             "safety_note": "AI is read-only and cannot perform destructive actions",

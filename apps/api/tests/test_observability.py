@@ -1,13 +1,12 @@
 """Tests for observability: metrics, SLI/SLO, alerts."""
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.main import app
+from app.observability.alerts import ALERT_RULES, evaluate_alerts
 from app.observability.metrics import Metrics
-from app.observability.sli import calculate_slis, get_slo_status, SLO_TARGETS
-from app.observability.alerts import evaluate_alerts, ALERT_RULES
 from app.observability.metrics import metrics as global_metrics
+from app.observability.sli import SLO_TARGETS, calculate_slis, get_slo_status
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture
@@ -77,6 +76,15 @@ class TestMetrics:
         m.increment("test")
         m.reset()
         assert m.get_counter("test") == 0
+
+    def test_histogram_keeps_latest_samples_only(self):
+        m = Metrics()
+        total = m.MAX_HISTOGRAM_SAMPLES + 40
+        for value in range(total):
+            m.observe("latency", float(value))
+        hist = m.get_histogram("latency")
+        assert hist["count"] == m.MAX_HISTOGRAM_SAMPLES
+        assert hist["p99"] > float(m.MAX_HISTOGRAM_SAMPLES)
 
 
 class TestSLI:
@@ -181,3 +189,10 @@ class TestObservabilityAPI:
         all_m = global_metrics.get_all()
         total = sum(v for k, v in all_m["counters"].items() if k.startswith("http_requests_total"))
         assert total >= 3
+
+    def test_metrics_use_route_template(self, client):
+        global_metrics.reset()
+        client.get("/api/resources/vm-idle-01")
+        keys = [key for key in global_metrics.get_all()["counters"] if key.startswith("http_requests_total")]
+        assert any("path=/api/resources/{resource_id}" in key for key in keys)
+        assert all("vm-idle-01" not in key for key in keys)

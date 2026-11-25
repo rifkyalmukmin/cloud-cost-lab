@@ -20,7 +20,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
 
         duration = time.perf_counter() - start_time
         method = request.method
-        path = request.url.path
+        path = _route_template(request)
         status = response.status_code
 
         labels = {"method": method, "path": path, "status": str(status)}
@@ -29,3 +29,12 @@ class MetricsMiddleware(BaseHTTPMiddleware):
         metrics.observe("http_request_duration_seconds", duration, labels={"path": path})
 
         return response
+
+
+def _route_template(request: Request) -> str:
+    """Use the matched route template so resource ids do not explode label cardinality."""
+    route = request.scope.get("route")
+    path = getattr(route, "path", None)
+    if isinstance(path, str) and path:
+        return path
+    return "unmatched"

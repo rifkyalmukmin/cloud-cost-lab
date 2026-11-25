@@ -1,17 +1,22 @@
 """Tests for recommendation engine."""
 
-import pytest
-from fastapi.testclient import TestClient
+from datetime import date, timedelta
 
+import pytest
 from app.main import app
 from app.recommendations.rules import (
+    CostAnomalyRule,
     IdleComputeRule,
     OversizedComputeRule,
-    UnusedDiskRule,
     StorageRetentionRule,
-    CostAnomalyRule,
+    UnusedDiskRule,
 )
-from app.services.recommendation_service import RecommendationService
+from app.services.recommendation_service import (
+    RecommendationService,
+    cost_change_percent,
+    dedupe_by_resource,
+)
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture
@@ -302,6 +307,33 @@ class TestRecommendationService:
         rec = service.get_recommendation("nonexistent-id")
         assert rec is None
 
+    def test_one_winner_per_resource(self, service):
+        recommendations = service.generate_recommendations()
+        resource_ids = [item["resource_id"] for item in recommendations]
+        assert len(resource_ids) == len(set(resource_ids))
+        for item in recommendations:
+            assert item["potential_savings"] <= item["current_cost"]
+
+    def test_dedupe_keeps_higher_priority(self):
+        low = {"resource_id": "vm-1", "priority": 10, "potential_savings": 5, "rule": "OversizedComputeRule"}
+        high = {"resource_id": "vm-1", "priority": 40, "potential_savings": 1, "rule": "IdleComputeRule"}
+        chosen = dedupe_by_resource([low, high])
+        assert len(chosen) == 1
+        assert chosen[0]["rule"] == "IdleComputeRule"
+
+    def test_cost_change_percent_from_history(self):
+        end = date(2026, 8, 26)
+        recent_start = end - timedelta(days=13)
+        prior_end = recent_start - timedelta(days=1)
+        prior_start = prior_end - timedelta(days=13)
+        records = []
+        day = prior_start
+        while day <= end:
+            cost = 2.0 if day >= recent_start else 1.0
+            records.append({"resource_id": "vm-1", "usage_date": day, "net_cost": cost})
+            day += timedelta(days=1)
+        assert cost_change_percent(records, "vm-1", end) == 100.0
+
 
 class TestRecommendationAPI:
     def test_list_recommendations(self, client):
@@ -324,3 +356,11 @@ class TestRecommendationAPI:
     def test_get_recommendation_not_found(self, client):
         response = client.get("/api/recommendations/nonexistent")
         assert response.status_code == 404
+
+    def test_list_status_matches_savings_store(self, client):
+        recommendations = client.get("/api/recommendations").json()["recommendations"]
+        verified = next((item for item in recommendations if item["status"] == "VERIFIED"), None)
+        assert verified is not None
+        state = client.get(f"/api/savings/{verified['id']}")
+        assert state.status_code == 200
+        assert state.json()["status"] == "VERIFIED"

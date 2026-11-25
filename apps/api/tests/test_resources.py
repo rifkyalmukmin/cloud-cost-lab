@@ -1,11 +1,10 @@
 """Tests for resource inventory API and service."""
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.main import app
-from app.services.resource_service import ResourceService
 from app.services.mock_data import RESOURCES
+from app.services.resource_service import ResourceService
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture

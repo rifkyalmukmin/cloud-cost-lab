@@ -1,10 +1,9 @@
 """Tests for cost forecasting."""
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.main import app
 from app.services.forecast_service import ForecastService
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture

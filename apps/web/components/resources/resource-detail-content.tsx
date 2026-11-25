@@ -15,14 +15,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ResourceDetail } from "@/lib/api";
 import { getResource } from "@/lib/api";
+import { formatIsoDate } from "@/lib/dates";
 
 interface ResourceDetailContentProps {
   resourceId: string;
 }
 
 function formatDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return formatIsoDate(dateStr);
 }
 
 function MetadataRow({ label, value }: { label: string; value: string | null }) {

@@ -9,7 +9,6 @@ Generates alerts when:
 
 from app.observability.metrics import metrics
 
-
 ALERT_RULES = [
     {
         "name": "BillingDataStale",

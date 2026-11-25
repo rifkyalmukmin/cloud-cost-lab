@@ -111,7 +111,7 @@ curl http://localhost:8000/api/savings
 
 **Show:** API docs at http://localhost:8000/docs
 
-**Say:** "Everything runs in demo mode without GCP credentials. When connected to real billing data, the same engine works on actual costs. The system has 312 tests, CI/CD with security scanning, Terraform for infrastructure, and SRE practices with incident response procedures. It's designed to be the kind of tool I'd want as a Cloud Engineer."
+**Say:** "Everything runs in demo mode without GCP credentials. When connected to real billing data, the same engine works on actual costs. The system has 329 tests, CI/CD with security scanning, Terraform for infrastructure, and SRE practices with incident response procedures. It's designed to be the kind of tool I'd want as a Cloud Engineer."
 
 ---
 

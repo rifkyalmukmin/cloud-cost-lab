@@ -15,12 +15,24 @@ Requires:
 """
 
 import logging
+import re
 from datetime import date, datetime, timedelta
 from typing import Optional
 
 from app.providers.base import BillingDataProvider, DataFreshness
 
 logger = logging.getLogger(__name__)
+
+_IDENTIFIER = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,127}$")
+
+
+def require_identifier(value: str, field_name: str) -> str:
+    """Reject identifiers that cannot be safely interpolated into SQL."""
+    if not isinstance(value, str) or _IDENTIFIER.fullmatch(value) is None:
+        raise GCPBillingProviderError(
+            f"Invalid BigQuery {field_name}. Use letters, numbers, '_' or '-' only."
+        )
+    return value
 
 
 class GCPBillingProviderError(Exception):
@@ -39,6 +51,7 @@ class GCPBillingProvider(BillingDataProvider):
     """
 
     MAX_QUERY_DAYS = 90
+    MAX_BYTES_BILLED = 500 * 1024 * 1024
 
     def __init__(
         self,
@@ -46,9 +59,9 @@ class GCPBillingProvider(BillingDataProvider):
         dataset: str,
         table: str,
     ):
-        self.project = project
-        self.dataset = dataset
-        self.table = table
+        self.project = require_identifier(project, "project")
+        self.dataset = require_identifier(dataset, "dataset")
+        self.table = require_identifier(table, "table")
         self._client = None
 
     @property
@@ -128,7 +141,8 @@ class GCPBillingProvider(BillingDataProvider):
                 query_parameters=[
                     bigquery.ScalarQueryParameter("start_date", "DATE", start.isoformat()),
                     bigquery.ScalarQueryParameter("end_date", "DATE", end.isoformat()),
-                ]
+                ],
+                maximum_bytes_billed=self.MAX_BYTES_BILLED,
             )
 
             result = client.query(query, job_config=job_config)
@@ -174,8 +188,11 @@ class GCPBillingProvider(BillingDataProvider):
         """
 
         try:
+            from google.cloud import bigquery
+
             client = self._get_client()
-            result = client.query(query)
+            job_config = bigquery.QueryJobConfig(maximum_bytes_billed=self.MAX_BYTES_BILLED)
+            result = client.query(query, job_config=job_config)
             row = next(iter(result), None)
 
             if row is None or row.latest_partition is None:

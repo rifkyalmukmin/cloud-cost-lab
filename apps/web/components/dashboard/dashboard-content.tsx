@@ -16,6 +16,7 @@ import {
   getCostByProject,
   getCostByEnvironment,
 } from "@/lib/api";
+import { formatIsoTimestamp } from "@/lib/dates";
 
 function formatCurrency(value: number): string {
   return `$${value.toFixed(2)}`;
@@ -130,8 +131,11 @@ export function DashboardContent() {
       </div>
 
       {summary && (
-        <div className="text-xs text-muted-foreground text-right">
-          Data freshness: {new Date(summary.data_freshness).toLocaleString()}
+        <div className="text-xs text-muted-foreground text-right space-y-1">
+          <div>
+            Data freshness: {summary.freshness_status} · {formatIsoTimestamp(summary.data_freshness)}
+          </div>
+          {summary.snapshot_label ? <div>Snapshot: {summary.snapshot_label}</div> : null}
         </div>
       )}
     </div>

@@ -16,7 +16,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 
 # Install dependencies
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 
 # Run the API server
 uvicorn app.main:app --reload --port 8000
@@ -28,12 +28,17 @@ API docs at: http://localhost:8000/docs
 ## With Docker Compose
 
 ```bash
-# Start all services
+# Start API, dashboard, and PostgreSQL
 docker compose up -d
 
 # Check health
 curl http://localhost:8000/health
 ```
+
+Dashboard: http://localhost:3000  
+Approvals: http://localhost:3000/approvals
+
+The Compose file sets a local demo token (`dev-demo-token` / `demo-approver`). Override `API_TOKEN` and `API_PRINCIPAL` before any shared deployment. Lifecycle rows are written to PostgreSQL when `PERSIST_LIFECYCLE=true`.
 
 ## Environment Variables
 
@@ -57,7 +62,7 @@ Key variables:
 cd apps/api
 source .venv/bin/activate
 
-# Run all tests
+# Run all tests (coverage gate is in pytest.ini)
 pytest
 
 # Verbose output

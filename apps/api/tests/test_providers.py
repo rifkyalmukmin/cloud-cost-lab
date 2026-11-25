@@ -1,17 +1,16 @@
 """Tests for billing data providers."""
 
 from datetime import date, datetime
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.main import app
-from app.providers.base import BillingDataProvider, DataFreshness
-from app.providers.mock_provider import MockBillingProvider
-from app.providers.gcp_provider import GCPBillingProvider, GCPBillingProviderError
+from app.providers.base import DataFreshness
 from app.providers.factory import create_billing_provider
+from app.providers.gcp_provider import GCPBillingProvider, GCPBillingProviderError
+from app.providers.mock_provider import MockBillingProvider
 from app.services.cost_service import CostService
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture
@@ -146,6 +145,18 @@ class TestGCPBillingProvider:
         )
         freshness = provider.get_data_freshness()
         assert freshness.status == "UNKNOWN"
+
+    def test_rejects_unsafe_identifier(self):
+        with pytest.raises(GCPBillingProviderError):
+            GCPBillingProvider(project="proj`;drop", dataset="billing_export", table="test_table")
+
+    def test_max_bytes_billed_is_bounded(self):
+        provider = GCPBillingProvider(
+            project="test-project",
+            dataset="billing_export",
+            table="test_table",
+        )
+        assert provider.MAX_BYTES_BILLED == 500 * 1024 * 1024
 
     def test_max_query_days_enforced(self):
         provider = GCPBillingProvider(

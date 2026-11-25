@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Recommendation } from "@/lib/api";
@@ -175,8 +176,13 @@ export function RecommendationsContent() {
                     <span className="font-medium">{rec.priority}</span>
                   </div>
                 </div>
-                <div className="text-xs text-amber-600 font-medium">
-                  {rec.approval_required ? "⚠ Approval Required" : ""}
+                <div className="text-xs font-medium text-right">
+                  <div>{rec.status}</div>
+                  {rec.status === "OPEN" ? (
+                    <Link href="/approvals" className="text-amber-700 hover:underline">
+                      Approval required
+                    </Link>
+                  ) : null}
                 </div>
               </div>
             </CardContent>
