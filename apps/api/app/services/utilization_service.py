@@ -5,7 +5,7 @@ and identifies utilization issues (low, high, unstable, missing metrics).
 """
 
 from datetime import date, timedelta
-from typing import Optional
+from typing import Any, Optional
 
 from app.clock import reference_today
 from app.services.mock_data import (
@@ -95,7 +95,7 @@ class UtilizationService:
         end = end_date or reference_today()
         start = start_date or (end - timedelta(days=29))
 
-        resource_utilizations = []
+        resource_utilizations: list[dict[str, Any]] = []
 
         for resource in RESOURCES:
             rid = resource["resource_id"]

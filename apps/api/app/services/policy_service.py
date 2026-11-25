@@ -4,6 +4,8 @@ Evaluates resources against governance policies and generates
 warnings/recommendations. No automatic destructive actions.
 """
 
+from typing import Any
+
 from app.governance.policies import ALL_POLICIES
 from app.services.mock_data import RESOURCES, SERVICES
 
@@ -17,7 +19,7 @@ class PolicyService:
 
     def evaluate_policies(self) -> dict:
         """Evaluate all policies against all resources."""
-        results = []
+        results: list[dict[str, Any]] = []
 
         for resource in RESOURCES:
             resource_data = {
@@ -35,7 +37,7 @@ class PolicyService:
             from app.services.mock_data import BASE_DAILY_COSTS
             resource_data["monthly_cost"] = round(BASE_DAILY_COSTS.get(resource["resource_id"], 0.0) * 30, 2)
 
-            policy_results = []
+            policy_results: list[dict[str, Any]] = []
             for policy in ALL_POLICIES:
                 result = policy.evaluate(resource_data)
                 policy_results.append({

@@ -8,13 +8,28 @@ projects, and environments.
 import hashlib
 import random
 from datetime import date, timedelta
-from typing import Optional
+from typing import Any, Optional, TypedDict
 
 from app.clock import reference_today
 
 SEED = 42
 
-PROJECTS = [
+
+class ResourceSeed(TypedDict):
+    resource_id: str
+    resource_name: str
+    resource_type: str
+    service_id: str
+    project_id: str
+    region: str
+    zone: str | None
+    environment: str
+    status: str
+    owner: str
+    team: str
+    application: str
+
+PROJECTS: list[dict[str, str]] = [
     {
         "project_id": "cloud-cost-lab-prod",
         "project_name": "Cloud Cost Lab Production",
@@ -38,14 +53,14 @@ PROJECTS = [
     },
 ]
 
-SERVICES = [
+SERVICES: list[dict[str, str]] = [
     {"service_id": "compute-engine", "service_name": "Compute Engine", "category": "Compute"},
     {"service_id": "cloud-sql", "service_name": "Cloud SQL", "category": "Database"},
     {"service_id": "cloud-storage", "service_name": "Cloud Storage", "category": "Storage"},
     {"service_id": "artifact-registry", "service_name": "Artifact Registry", "category": "Storage"},
 ]
 
-RESOURCES = [
+RESOURCES: list[ResourceSeed] = [
     {
         "resource_id": "vm-prod-api-01",
         "resource_name": "prod-api-server-01",
@@ -197,7 +212,7 @@ def _inject_spike(resource_id: str, day: date) -> float:
     return 1.0
 
 
-RESOURCE_UTILIZATION: dict[str, dict] = {
+RESOURCE_UTILIZATION: dict[str, dict[str, float | None]] = {
     "vm-prod-api-01": {"cpu_avg": 62.0, "memory_avg": 71.0, "disk_avg": 45.0},
     "vm-prod-api-02": {"cpu_avg": 58.0, "memory_avg": 68.0, "disk_avg": 42.0},
     "vm-dev-01": {"cpu_avg": 25.0, "memory_avg": 35.0, "disk_avg": 30.0},
@@ -208,7 +223,7 @@ RESOURCE_UTILIZATION: dict[str, dict] = {
     "ar-prod-images": {"cpu_avg": None, "memory_avg": None, "disk_avg": 38.0},
 }
 
-RESOURCE_LABELS: dict[str, dict] = {
+RESOURCE_LABELS: dict[str, dict[str, str]] = {
     "vm-prod-api-01": {"env": "production", "service": "api", "managed-by": "terraform"},
     "vm-prod-api-02": {"env": "production", "service": "api", "managed-by": "terraform"},
     "vm-dev-01": {"env": "development", "purpose": "workstation"},
@@ -235,7 +250,7 @@ def generate_utilization_records(
     resource_id: str,
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """Generate deterministic utilization records for a resource."""
     if end_date is None:
         end_date = reference_today()
@@ -284,7 +299,7 @@ def generate_utilization_records(
 def generate_cost_records(
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """Generate deterministic cost records for the given date range."""
     if end_date is None:
         end_date = reference_today()

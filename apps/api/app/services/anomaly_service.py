@@ -60,9 +60,9 @@ class AnomalyService:
                 cost_records = generate_cost_records(anomaly_date, anomaly_date)
 
                 # Find top contributors to the spike
-                resource_costs = {}
-                service_costs = {}
-                project_costs = {}
+                resource_costs: dict[str, float] = {}
+                service_costs: dict[str, float] = {}
+                project_costs: dict[str, float] = {}
 
                 for record in cost_records:
                     rid = record["resource_id"]

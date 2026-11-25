@@ -20,7 +20,7 @@ def create_billing_provider() -> BillingDataProvider:
     dataset = settings.gcp_billing_dataset
     table = settings.gcp_billing_table
 
-    if not all([project, dataset, table]):
+    if project is None or dataset is None or table is None:
         raise RuntimeError(
             "GCP billing integration requires GCP_BILLING_PROJECT, "
             "GCP_BILLING_DATASET, and GCP_BILLING_TABLE environment variables. "

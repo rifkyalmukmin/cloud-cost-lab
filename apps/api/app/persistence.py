@@ -189,7 +189,7 @@ class LifecyclePersister:
 
 
 def _audit_to_dict(row: AuditLogRow) -> dict:
-    entry = {
+    entry: dict[str, object] = {
         "timestamp": row.timestamp,
         "action": row.action,
         "recommendation_id": row.recommendation_id,

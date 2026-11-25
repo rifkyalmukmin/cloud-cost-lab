@@ -100,16 +100,19 @@ class MockMonitoringProvider(MonitoringDataProvider):
 
         current_day = start
         while current_day <= end:
-            if base_util.get("cpu_avg") is not None:
-                cpu_val = _deterministic_metric(resource_id, "cpu", current_day, base_util["cpu_avg"])
+            cpu_avg = base_util.get("cpu_avg")
+            if cpu_avg is not None:
+                cpu_val = _deterministic_metric(resource_id, "cpu", current_day, cpu_avg)
                 cpu_series.append({"date": current_day.isoformat(), "value": min(cpu_val, 100.0)})
 
-            if base_util.get("memory_avg") is not None:
-                mem_val = _deterministic_metric(resource_id, "memory", current_day, base_util["memory_avg"])
+            memory_avg = base_util.get("memory_avg")
+            if memory_avg is not None:
+                mem_val = _deterministic_metric(resource_id, "memory", current_day, memory_avg)
                 memory_series.append({"date": current_day.isoformat(), "value": min(mem_val, 100.0)})
 
-            if base_util.get("disk_avg") is not None:
-                disk_val = _deterministic_metric(resource_id, "disk", current_day, base_util["disk_avg"])
+            disk_avg = base_util.get("disk_avg")
+            if disk_avg is not None:
+                disk_val = _deterministic_metric(resource_id, "disk", current_day, disk_avg)
                 disk_series.append({"date": current_day.isoformat(), "value": min(disk_val, 100.0)})
 
             # Network (MB)

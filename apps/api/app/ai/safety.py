@@ -4,6 +4,8 @@ Enforces read-only constraints and protects against prompt injection.
 AI cannot take destructive actions — only analyze, summarize, and recommend.
 """
 
+from typing import Any
+
 FORBIDDEN_ACTIONS = [
     "delete",
     "destroy",
@@ -59,7 +61,7 @@ def validate_question(question: str) -> tuple[bool, str]:
 
 def filter_sensitive_data(data: dict) -> dict:
     """Remove sensitive fields from context before passing to AI."""
-    filtered = {}
+    filtered: dict[str, Any] = {}
     for key, value in data.items():
         key_lower = key.lower()
         if any(pattern in key_lower for pattern in SENSITIVE_PATTERNS):

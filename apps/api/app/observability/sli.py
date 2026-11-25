@@ -6,10 +6,19 @@ Tracks:
 - Recommendation pipeline success (target: >= 99%)
 """
 
+from typing import TypedDict
+
 from app.clock import as_of_now
 from app.observability.metrics import metrics
 
-SLO_TARGETS = {
+
+class SloSpec(TypedDict):
+    target: float
+    unit: str
+    description: str
+
+
+SLO_TARGETS: dict[str, SloSpec] = {
     "api_availability": {
         "target": 99.5,
         "unit": "%",
