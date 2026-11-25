@@ -19,6 +19,7 @@ class CostService:
     def __init__(self, provider: Optional[BillingDataProvider] = None):
         self._provider = provider
         self._records: Optional[list[dict]] = None
+        self._stored_aggregates: Optional[list[dict]] = None
 
     @property
     def provider(self) -> BillingDataProvider:
@@ -85,7 +86,13 @@ class CostService:
             "snapshot_label": snapshot_label(),
         }
 
+    def use_stored_aggregates(self, rows: Optional[list[dict]]) -> None:
+        """Read explorer totals from persisted daily aggregates when present."""
+        self._stored_aggregates = rows
+
     def _analysis_rows(self) -> list[dict]:
+        if self._stored_aggregates is not None:
+            return self._stored_aggregates
         return self.records
 
     def _deduped_potential_savings(self, reference_date: date) -> float:

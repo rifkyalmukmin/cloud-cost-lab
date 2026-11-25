@@ -5,6 +5,7 @@ this module writes that same store to PostgreSQL after Alembic upgrade.
 """
 
 import json
+from datetime import date
 from decimal import Decimal
 from pathlib import Path
 
@@ -15,6 +16,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.models.database import (
     AuditLogRow,
+    CostDailyAggregate,
     Project,
     RecommendationStateRow,
     Resource,
@@ -204,6 +206,75 @@ def _audit_to_dict(row: AuditLogRow) -> dict:
     return entry
 
 
+def sync_cost_aggregates(engine, records: list[dict]) -> list[dict]:
+    """Replace daily cost aggregates and return the rows the explorer should read."""
+    grouped: dict[tuple, dict] = {}
+    for record in records:
+        project_id = record.get("project_id")
+        service_id = record.get("service_id")
+        if not project_id or not service_id:
+            continue
+        usage_date = record["usage_date"]
+        if isinstance(usage_date, str):
+            usage_date = date.fromisoformat(usage_date[:10])
+        environment = record.get("environment") or "UNALLOCATED"
+        key = (usage_date, project_id, service_id, environment)
+        bucket = grouped.setdefault(
+            key,
+            {
+                "project_name": record.get("project_name") or project_id,
+                "service_name": record.get("service_name") or service_id,
+                "cost": Decimal("0"),
+                "net_cost": Decimal("0"),
+                "currency": record.get("currency") or "USD",
+            },
+        )
+        bucket["cost"] += Decimal(str(record.get("cost", 0)))
+        bucket["net_cost"] += Decimal(str(record.get("net_cost", 0)))
+
+    session_factory = sessionmaker(bind=engine)
+    session = session_factory()
+    stored: list[dict] = []
+    try:
+        session.query(CostDailyAggregate).delete()
+        for (usage_date, project_id, service_id, environment), bucket in grouped.items():
+            cost = bucket["cost"].quantize(Decimal("0.0001"))
+            net_cost = bucket["net_cost"].quantize(Decimal("0.0001"))
+            session.add(
+                CostDailyAggregate(
+                    usage_date=usage_date,
+                    project_id=project_id,
+                    service_id=service_id,
+                    project_name=bucket["project_name"],
+                    service_name=bucket["service_name"],
+                    environment=environment,
+                    cost=cost,
+                    net_cost=net_cost,
+                    currency=bucket["currency"],
+                )
+            )
+            stored.append(
+                {
+                    "usage_date": usage_date,
+                    "project_id": project_id,
+                    "service_id": service_id,
+                    "project_name": bucket["project_name"],
+                    "service_name": bucket["service_name"],
+                    "environment": environment,
+                    "cost": float(cost),
+                    "net_cost": float(net_cost),
+                    "currency": bucket["currency"],
+                }
+            )
+        session.commit()
+        return stored
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
 def bind_lifecycle(service, database_url: str) -> None:
     """Upgrade the schema, seed reference rows, and attach the persister."""
     upgrade_database(database_url)
@@ -214,3 +285,7 @@ def bind_lifecycle(service, database_url: str) -> None:
     persister = LifecyclePersister(engine)
     persister.load_or_store_seed(service)
     service._persister = persister
+
+    from app.services.cost_service import cost_service
+
+    cost_service.use_stored_aggregates(sync_cost_aggregates(engine, cost_service.records))

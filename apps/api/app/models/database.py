@@ -111,6 +111,32 @@ class CostRecord(Base):
     labels = Column(Text)
 
 
+class CostDailyAggregate(Base):
+    """Daily cost rolled up by project, service, and environment."""
+
+    __tablename__ = "cost_daily_aggregates"
+    __table_args__ = (
+        UniqueConstraint(
+            "usage_date",
+            "project_id",
+            "service_id",
+            "environment",
+            name="uq_cost_daily_aggregate",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True)
+    usage_date = Column(Date, nullable=False, index=True)
+    project_id = Column(String(100), ForeignKey("projects.project_id"), nullable=False, index=True)
+    service_id = Column(String(100), ForeignKey("services.service_id"), nullable=False, index=True)
+    project_name = Column(String(200), nullable=False)
+    service_name = Column(String(200), nullable=False)
+    environment = Column(String(50), nullable=False, index=True)
+    cost = Column(Numeric(14, 4), nullable=False)
+    net_cost = Column(Numeric(14, 4), nullable=False)
+    currency = Column(String(10), nullable=False, default="USD")
+
+
 class RecommendationStateRow(Base):
     __tablename__ = "recommendation_states"
 
