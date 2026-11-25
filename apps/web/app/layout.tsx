@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Link from "next/link";
+import { SiteHeader } from "@/components/nav/site-header";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -25,34 +25,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <header className="border-b bg-card">
-          <div className="max-w-7xl mx-auto px-6 min-h-14 py-2 flex flex-wrap items-center gap-x-6 gap-y-2">
-            <Link href="/" className="font-semibold text-sm">
-              Cloud Cost Lab
-            </Link>
-            <nav className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-              <Link href="/" className="hover:text-foreground transition-colors">
-                Overview
-              </Link>
-              <Link href="/cost" className="hover:text-foreground transition-colors">
-                Cost Explorer
-              </Link>
-              <Link href="/resources" className="hover:text-foreground transition-colors">
-                Resources
-              </Link>
-              <Link href="/utilization" className="hover:text-foreground transition-colors">
-                Utilization
-              </Link>
-              <Link href="/recommendations" className="hover:text-foreground transition-colors">
-                Recommendations
-              </Link>
-              <Link href="/approvals" className="hover:text-foreground transition-colors">
-                Approvals
-              </Link>
-            </nav>
-          </div>
-        </header>
-        {children}
+        <SiteHeader />
+        <div id="main-content">{children}</div>
       </body>
     </html>
   );

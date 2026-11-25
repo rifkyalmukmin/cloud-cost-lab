@@ -71,8 +71,8 @@ export function CostSummaryCard({
                   : "text-muted-foreground"
             }`}
           >
-            {trend.value > 0 ? "+" : ""}
-            {trend.value.toFixed(1)}% {trend.label}
+            {trend.value > 0 ? "Increase" : trend.value < 0 ? "Decrease" : "No change"}{" "}
+            {Math.abs(trend.value).toFixed(1)}% {trend.label}
           </p>
         )}
         {subtitle && (

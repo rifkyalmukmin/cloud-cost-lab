@@ -276,3 +276,65 @@ export async function getRecommendations(): Promise<RecommendationsResponse> {
 export async function getRecommendation(id: string): Promise<Recommendation> {
   return fetchApi<Recommendation>(`/api/recommendations/${encodeURIComponent(id)}`);
 }
+
+export interface BudgetAlert {
+  severity: string;
+  message: string;
+  recommendation: string;
+}
+
+export interface BudgetStatus {
+  budget: {
+    id: string;
+    name: string;
+    scope: string;
+    period: string;
+    limit: number;
+    warning_threshold: number;
+    critical_threshold: number;
+    currency: string;
+  };
+  current: {
+    spend: number;
+    utilization_pct: number;
+    remaining: number;
+    status: string;
+  };
+  projected: {
+    spend: number;
+    utilization_pct: number;
+    status: string;
+  };
+  alerts: BudgetAlert[];
+}
+
+export interface ForecastPoint {
+  date: string;
+  expected: number;
+  lower_bound: number;
+  upper_bound: number;
+  confidence: string;
+}
+
+export interface ForecastResponse {
+  period_start?: string;
+  period_end?: string;
+  method?: string;
+  forecast_days?: number;
+  daily_forecast?: ForecastPoint[];
+  monthly_summary?: {
+    expected: number;
+    lower_bound: number;
+    upper_bound: number;
+    range_description: string;
+  };
+  error?: string;
+}
+
+export async function getBudget(): Promise<BudgetStatus> {
+  return fetchApi<BudgetStatus>("/api/budget");
+}
+
+export async function getForecast(): Promise<ForecastResponse> {
+  return fetchApi<ForecastResponse>("/api/forecast");
+}

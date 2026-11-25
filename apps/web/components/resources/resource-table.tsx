@@ -24,15 +24,18 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function UtilBar({ value }: { value: number | null }) {
-  if (value === null) return <span className="text-xs text-muted-foreground">—</span>;
+  if (value === null) return <span className="text-xs text-muted-foreground">No utilization</span>;
+  const level = value > 80 ? "high" : value > 50 ? "moderate" : "low";
   const color =
-    value > 80 ? "bg-destructive" : value > 50 ? "bg-amber-500" : "bg-emerald-500";
+    level === "high" ? "bg-destructive" : level === "moderate" ? "bg-amber-500" : "bg-emerald-500";
   return (
     <div className="flex items-center gap-2">
-      <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
+      <div className="w-16 h-2 bg-muted rounded-full overflow-hidden" aria-hidden="true">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${value}%` }} />
       </div>
-      <span className="text-xs text-muted-foreground">{value.toFixed(0)}%</span>
+      <span className="text-xs text-muted-foreground">
+        {level} {value.toFixed(0)}%
+      </span>
     </div>
   );
 }

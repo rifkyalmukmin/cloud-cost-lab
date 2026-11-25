@@ -91,7 +91,9 @@ export function DashboardContent() {
           title="Projected Cost"
           value={summary ? formatCurrency(summary.projected_month_cost) : "—"}
           subtitle={
-            summary ? `Through ${summary.month_length} days in the month` : "Month-end projection"
+            summary?.month_length
+              ? `Through ${summary.month_length} days in the month`
+              : "Month-end projection"
           }
           loading={loading}
           error={error}

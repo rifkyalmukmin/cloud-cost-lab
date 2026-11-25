@@ -14,7 +14,10 @@ function RiskBadge({ risk }: { risk: string }) {
     HIGH: "bg-red-100 text-red-800",
   };
   return (
-    <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${colors[risk as keyof typeof colors] || colors.LOW}`}>
+    <span
+      className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${colors[risk as keyof typeof colors] || colors.LOW}`}
+      aria-label={`Risk ${risk}`}
+    >
       {risk}
     </span>
   );
@@ -113,11 +116,14 @@ export function RecommendationsContent() {
       </Card>
 
       <div className="flex items-center gap-3">
-        <span className="text-sm text-muted-foreground">Sort by:</span>
+        <label htmlFor="recommendation-sort" className="text-sm text-muted-foreground">
+          Sort by
+        </label>
         <select
+          id="recommendation-sort"
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as "priority" | "savings")}
-          className="text-sm border rounded px-3 py-1.5 bg-background"
+          className="text-sm border rounded px-3 py-1.5 bg-background min-h-11"
         >
           <option value="priority">Priority</option>
           <option value="savings">Potential Savings</option>
@@ -157,8 +163,8 @@ export function RecommendationsContent() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-3 border-t">
-                <div className="flex items-center gap-3 text-xs">
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t">
+                <div className="flex flex-wrap items-center gap-3 text-xs">
                   <div className="flex items-center gap-1">
                     <span className="text-muted-foreground">Risk:</span>
                     <RiskBadge risk={rec.risk} />

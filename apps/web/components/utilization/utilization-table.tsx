@@ -20,7 +20,10 @@ function PatternBadge({ pattern }: { pattern: { status: string; evidence: string
   };
   const color = colorMap[pattern.status] || "bg-gray-100 text-gray-600";
   return (
-    <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${color}`}>
+    <span
+      className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${color}`}
+      aria-label={`Utilization pattern ${pattern.status}. ${pattern.evidence}`}
+    >
       {pattern.status}
     </span>
   );
